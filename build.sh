@@ -40,8 +40,8 @@ function build_template() {
 # combines the source.sh & script.sh files into a single script. If you want
 # your script to be entirely self-contained then this should be what you want!"
 
-    source_file="$script_dir/source.sh"
-    script_file="$script_dir/script.sh"
+    source_file="$SCRIPT_DIR/source.sh"
+    script_file="$SCRIPT_DIR/script.sh"
 
     script_options="$(head -n 26 "$script_file" | tail -n 17)"
     source_data="$(tail -n +10 "$source_file" | head -n -1)"
