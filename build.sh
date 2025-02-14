@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 
+## FILE        : #~NAME~#
+## DESCRIPTION : Build script that merge source.sh and script.sh into one
+## CREATED     : #~TIME~#
+## TEMVER      : v1.0.0
+## TEMRELEASE  : https://github.com/Silverbullet069/bash-script-template/releases/tag/v1.0.0
+## AUTHOR      : ralish (https://github.com/ralish/)
+## CONTRIBUTOR : Silverbullet069 (https://github.com/Silverbullet069/)
+## LICENSE     : MIT License
+
+# ============================================================================ #
+
 # Assembles the all-in-one template script by combining source.sh & script.sh
 
 # Enable xtrace if the DEBUG environment variable is set
@@ -15,55 +26,26 @@ set -o pipefail         # Use last non-zero exit code in a pipeline
 
 # Main control flow
 function main() {
-    # shellcheck source=source.sh
-    source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
 
-    trap "script_trap_err" ERR
-    trap "script_trap_exit" EXIT
+    source_content_no_header=$(tail -n +14 source.sh)
+    script_header=$(head -n 13 script.sh)
+    script_content_no_header=$(tail -n +14 script.sh)
+    # Remove shellcheck source lines
+    script_content_no_header=$(echo "${script_content_no_header}" | grep -v "# shellcheck source=source.sh" | grep -v "# shellcheck disable=SC1091" | grep -v '^source.*source\.sh"')
 
-    script_init "$@"
-    build_template
-}
-
-# This is quite brittle, but it does work. I appreciate the irony given it's
-# assembling a template meant to consist of good Bash scripting practices. I'll
-# make it more durable once I have some spare time. Likely some arcane sed...
-function build_template() {
-    local tmp_file
-    local shebang header
-    local source_file script_file
-    local script_options source_data script_data
-
-    shebang="#!/usr/bin/env bash"
-    header="
-# A best practices Bash script template with many useful functions. This file
-# combines the source.sh & script.sh files into a single script. If you want
-# your script to be entirely self-contained then this should be what you want!"
-
-    source_file="$SCRIPT_DIR/source.sh"
-    script_file="$SCRIPT_DIR/script.sh"
-
-    script_options="$(head -n 26 "$script_file" | tail -n 17)"
-    source_data="$(tail -n +10 "$source_file" | head -n -1)"
-    script_data="$(tail -n +27 "$script_file")"
-
+    # Combine parts in desired order and write to template.sh
     {
-        printf '%s\n' "$shebang"
-        printf '%s\n\n' "$header"
-        printf '%s\n\n' "$script_options"
-        printf '%s\n\n' "$source_data"
-        printf '%s\n' "$script_data"
+        echo "${script_header}"
+        echo "${source_content_no_header}"
+        echo "${script_content_no_header}"
     } > template.sh
 
-    tmp_file="$(mktemp /tmp/template.XXXXXX)"
-    sed -e '/# shellcheck source=source\.sh/{N;N;d;}' \
-        -e 's/BASH_SOURCE\[1\]/BASH_SOURCE[0]/' \
-        template.sh > "$tmp_file"
-    mv "$tmp_file" template.sh
+    # Make template.sh executable
     chmod +x template.sh
+    echo "Build template.sh successfully"
 }
 
-# Template, assemble!
+# Template, assemble
 main
 
 # vim: syntax=sh cc=80 tw=79 ts=4 sw=4 sts=4 et sr

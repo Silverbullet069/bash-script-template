@@ -1,0 +1,49 @@
+name: Test
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # where the job will run on
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      # `git config [OPTIONS] + git clone [OPTIONS]` in a nutshell
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Bats and bats libs
+        # provide subsequent steps with output from the step
+        id: setup-bats
+        uses: bats-core/bats-action@3.0.0
+        # inputs
+        with:
+          # by default, Bats libs are installed in default location
+          # the inputs are set to `/usr/lib/bats-LIB_NAME`
+          # to enable caching Bats libs, installed them inside HOME directory
+          # NOTE: works for linux/win/mac
+          support-path: "${{ github.workspace }}/tests/test_helper/bats-support"
+          assert-path: "${{ github.workspace }}/tests/test_helper/bats-assert"
+          file-path: "${{ github.workspace }}/tests/test_helper/bats-file"
+      - name: Test script.sh
+        shell: bash
+        env:
+          # BATS_LIB_PATH=
+          TERM: xterm
+        run: bats tests/test.sh
+      - name: Test template.sh
+        shell: bash
+        env:
+          # BATS_LIB_PATH=
+          SCRIPT_NAME: template.sh
+          TERM: xterm
+        run: bats tests/test_script.sh
