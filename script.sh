@@ -7,6 +7,8 @@
 ## VERSION     : 0.1
 ## LICENSE     : MIT License
 ## CREDIT      : https://github.com/ralish/bash-script-template/blob/main/script.sh
+## HISTORY
+## - v0.1 (#~DATE~#): Added MVP
 
 ## ToC:
 ## - usage()
