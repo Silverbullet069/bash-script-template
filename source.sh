@@ -11,7 +11,8 @@
 ## LICENSE     : MIT License
 ## CREDIT      : https://github.com/ralish/bash-script-template/blob/main/source.sh
 ## HISTORY     :
-## - (2024-02-14) style: change printf command in exit_script() to error()
+## - v0.1.1 (2024-02-14) Changed: printf command in exit_script() to error()
+## - v0.1.0 (2024-02-08) Added: MVP
 
 ## ToC:
 ## - trap_script_err()
