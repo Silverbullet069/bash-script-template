@@ -91,7 +91,7 @@ function _log() {
     fi
 
     # Define the log format
-    local -r log_format="%s%s[%s]: %b%-9s%b %s\n"
+    local -r log_format="%s%s[%s]: %b%-5s%b %s\n"
 
     # Output function
     _output() {
@@ -111,11 +111,11 @@ function _log() {
 }
 
 # Logging functions with printf-like behavior
-function success() { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_green}" "[SUCCESS]" "$@" || _log "${ta_none}" "[SUCCESS]" "$@"; }
-function error()   { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_red}" "[ERROR]" "$@" || _log "${ta_none}" "[ERROR]" "$@"; }
-function warn()    { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_yellow}" "[WARNING]" "$@" || _log "${ta_none}" "[WARNING]" "$@"; }
-function info()    { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_blue}" "[INFO]" "$@" || _log "${ta_none}" "[INFO]" "$@"; }
-function debug()   { [[ -n "${DEBUG-}" ]] && _log "${ta_none}" "[DEBUG]" "$@" || true; }
+function success() { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_green}" "[SUC]" "$@" || _log "${ta_none}" "[SUC]" "$@"; } # SUC = success
+function error()   { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_red}" "[ERR]" "$@" || _log "${ta_none}" "[ERR]" "$@"; } # ERR = error
+function warn()    { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_yellow}" "[WRN]" "$@" || _log "${ta_none}" "[WRN]" "$@"; } # WRN = warning
+function info()    { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_blue}" "[INF]" "$@" || _log "${ta_none}" "[INF]" "$@"; } # INF = info
+function debug()   { [[ -n "${DEBUG-}" ]] && _log "${ta_none}" "[DBG]" "$@" || true; } # DBG = debug
 
 # DESC: Handler for unexpected errors
 # ARGS: $1 (optional): Exit code (defaults to 1)
@@ -508,21 +508,29 @@ EOF
 # RETS: None
 # NOTE: Refrain from type checking, let the lower-level tool do it
 function parse_params() {
+
+    # initialize with default values
+    _flag_log=false
+    _flag_no_colour=false
+    _flag_quiet=false
+    _flag_timestamp=false
+
+    # parse provided arguments
     while [[ $# -gt 0 ]]; do
         local param="${1}"
         shift
         case "${param}" in
             -l | --log)
-                readonly _flag_log=true
+                _flag_log=true
                 ;;
             -n | --no-colour)
-                readonly _flag_no_colour=true
+                _flag_no_colour=true
                 ;;
             -q | --quiet)
-                readonly _flag_quiet=true
+                _flag_quiet=true
                 ;;
             -t | --timestamp)
-                readonly _flag_timestamp=true
+                _flag_timestamp=true
                 ;;
             -h | --help)
                 script_usage
@@ -535,6 +543,17 @@ function parse_params() {
     done
 }
 
+# DESC: Make parameters globally readonly *after* parsing
+# ARGS: $@ (optional): Arguments provided to the script
+# OUTS: None
+# RETS: None
+function finalize_params() {
+    readonly _flag_log
+    readonly _flag_no_colour
+    readonly _flag_quiet
+    readonly _flag_timestamp
+}
+
 # DESC: Main control flow
 # ARGS: $@ (optional): Arguments provided to the script
 # OUTS: None
@@ -545,6 +564,7 @@ function main() {
 
     script_init "$@"
     parse_params "$@"
+    finalize_params "$@"
     quiet_init
     colour_init
     lock_init user
