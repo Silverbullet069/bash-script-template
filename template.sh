@@ -9,6 +9,7 @@
 ## CREATED        : #~TIME~#
 ## LICENSE        : MIT License
 ## TEMCRE         : https://github.com/ralish/bash-script-template/blob/main/template.sh
+## TEMVER         : v2.0.2
 
 # ============================================================================ #
 # Helper flags
@@ -510,10 +511,10 @@ EOF
 function parse_params() {
 
     # initialize with default values
-    _flag_log=false
-    _flag_no_colour=false
-    _flag_quiet=false
-    _flag_timestamp=false
+    _flag_log=
+    _flag_no_colour=
+    _flag_quiet=
+    _flag_timestamp=
 
     # parse provided arguments
     while [[ $# -gt 0 ]]; do
@@ -544,8 +545,8 @@ function parse_params() {
 }
 
 # DESC: Make parameters globally readonly *after* parsing
-# ARGS: $@ (optional): Arguments provided to the script
-# OUTS: None
+# ARGS: None
+# OUTS: Read-only variables indicating command-line parameters and options
 # RETS: None
 function finalize_params() {
     readonly _flag_log
@@ -564,7 +565,7 @@ function main() {
 
     script_init "$@"
     parse_params "$@"
-    finalize_params "$@"
+    finalize_params
     quiet_init
     colour_init
     lock_init user
