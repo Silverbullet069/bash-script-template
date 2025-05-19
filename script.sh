@@ -2,18 +2,10 @@
 
 ## FILE        : #~NAME~#
 ## DESCRIPTION : General Bash script template
-## AUTHOR      : Silverbullet069
 ## CREATED     : #~TIME~#
-## VERSION     : 0.1
+## AUTHOR      : ralish and Silverbullet069
 ## LICENSE     : MIT License
 ## CREDIT      : https://github.com/ralish/bash-script-template/blob/main/script.sh
-## HISTORY
-## - v0.1 (#~DATE~#): Added MVP
-
-## ToC:
-## - usage()
-## - simple_parse_options()
-## - main()
 
 # ============================================================================ #
 
@@ -21,17 +13,19 @@
 # ARGS: None
 # OUTS: None
 # RETS: None
-function usage() {
+function script_usage() {
     cat << EOF
 
-#~NAME~# [-c] [-nc] [-nt]
+Usage: #~NAME~# [OPTIONS] ...
 
-Usage:
-    -h|--help                 Displays this help
-    -q|--quiet                Run silently unless we encounter an error
-    -c|--no-color             Disables color output
-    -t|--no-timestamp         Disables timestamp output
-    -s|--save-log             Save terminal output to log file
+TODO: Add short description and examples here...
+
+Options:
+    -l, --log                   Redirect output to plaintext log file
+    -n, --no-colour             Disables colour output
+    -q, --quiet                 Run silently unless an error is encountered
+    -t, --timestamp             Enables timestamp output
+    -h, --help                  Displays this help and exit
 EOF
 }
 
@@ -39,39 +33,57 @@ EOF
 # ARGS: $@ (optional): Arguments provided to the script
 # OUTS: Variables indicating command-line parameters and options
 # RETS: None
-function simple_parse_options() {
+# NOTE: Refrain from type checking, let the lower-level tool do it
+function parse_params() {
 
+    # initialize with default values
+    _flag_log=
+    _flag_no_colour=
+    _flag_quiet=
+    _flag_timestamp=
+
+    # parse provided arguments
     while [[ $# -gt 0 ]]; do
-        local _param="$1"
+        local param="${1}"
         shift
-        case $_param in
-            -h | --help)
-                usage
-                exit 0
+        case "${param}" in
+            -l | --log)
+                _flag_log=true
+                ;;
+            -n | --no-colour)
+                _flag_no_colour=true
                 ;;
             -q | --quiet)
-                readonly QUIET=1
+                _flag_quiet=true
                 ;;
-            -c | --no-color)
-                readonly NO_COLOR=1
+            -t | --timestamp)
+                _flag_timestamp=true
                 ;;
-            -t | --no-timestamp)
-                readonly NO_TIMESTAMP=1
-                ;;
-            -s | --save-log)
-                readonly LOG_FILE="${SCRIPT_DIR}/logs/$(basename "${0%.*}").log"
-                if [[ ! -d "$(dirname "$LOG_FILE")" ]]; then
-                  local -r _mkdir_log=$(mktemp)
-                  mkdir -pv "$(dirname "$LOG_FILE")" | tee "$_mkdir_log"
-                  cat "$_mkdir_log" >> "$LOG_FILE"
-                  rm "$_mkdir_log"
-                fi
+            -h | --help)
+                script_usage
+                exit 0
                 ;;
             *)
-                exit_script "Invalid parameter was provided: $_param" 1
+                # internal function calling
+                if declare -F "$param" &>/dev/null; then
+                    "$param" "$@"
+                    exit 0
+                fi
+                script_exit "Invalid parameter was provided: $param" 1
                 ;;
         esac
     done
+}
+
+# DESC: Make parameters globally readonly *after* parsing
+# ARGS: None
+# OUTS: Read-only variables indicating command-line parameters and options
+# RETS: None
+function finalize_params() {
+    readonly _flag_log
+    readonly _flag_no_colour
+    readonly _flag_quiet
+    readonly _flag_timestamp
 }
 
 # DESC: Main control flow
@@ -79,21 +91,22 @@ function simple_parse_options() {
 # OUTS: None
 # RETS: None
 function main() {
-    trap trap_script_err ERR
-    trap trap_script_exit EXIT
+    trap script_trap_err ERR
+    trap script_trap_exit EXIT
 
-    init_script "$@"
-    simple_parse_options "$@"
-    init_color
-    init_quiet
-    init_lock user
+    script_init "$@"
+    parse_params "$@"
+    finalize_params
+    quiet_init
+    colour_init
+    lock_init user
 
-    # Start Here
+    # start here
 }
 
-# ======================================================== #
-# Initialize Safety Flags And Run The Main Script          #
-# ======================================================== #
+# ============================================================================ #
+# Helper flags
+# ============================================================================ #
 
 # Enable xtrace if the DEBUG environment variable is set
 if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
@@ -119,6 +132,7 @@ shopt -s nullglob globstar
 # IFS=$' '
 
 # shellcheck source=source.sh
+# shellcheck disable=SC1091
 source "/home/$USER/LocalRepository/bash-script-template/source.sh"
 
 # Invoke main with args if not sourced

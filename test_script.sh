@@ -7,7 +7,7 @@ setup() {
     export ORIGINAL_DIR="${PWD}"
     
     # Save the name of the script that's being tested
-    export SCRIPT_NAME="template.sh"
+    export SCRIPT_NAME="script.sh"
 
     # Temporary log file path
     export LOG_FILE="/tmp/${SCRIPT_NAME}.log"
@@ -22,17 +22,18 @@ teardown() {
 # ============================ CLI Tests ============================
 
 @test "Script runs without arguments" {
+    # shellcheck disable=SC2154
     run "${BATS_TEST_DIRNAME}/${SCRIPT_NAME}"
     
     # Should run without errors
-    [ "$status" -eq 0 ]
+    [[ "$status" -eq 0 ]]
 }
 
 @test "Script handles --help option" {
     run "${BATS_TEST_DIRNAME}/${SCRIPT_NAME}" --help
     
     # Should run without errors
-    [ "$status" -eq 0 ]
+    [[ "$status" -eq 0 ]]
     # Should display usage information
     [[ "$output" == *"Usage:"* ]]
     [[ "$output" == *"Options:"* ]]
@@ -42,7 +43,7 @@ teardown() {
     run "${BATS_TEST_DIRNAME}/${SCRIPT_NAME}" --help
     
     # Should run without errors
-    [ "$status" -eq 0 ]
+    [[ "$status" -eq 0 ]]
     # Should display usage information
     [[ "$output" == *"Usage:"* ]]
     [[ "$output" == *"Options:"* ]]
@@ -58,18 +59,18 @@ teardown() {
     local -r without_color="$output"
     
     # Should run without errors
-    [ "$status" -eq 0 ]
+    [[ "$status" -eq 0 ]]
     
     # Different output expected (no ANSI codes in no-colour mode)
     # This is a simple way to check if output is different - not perfect but gives an indication
-    [ "$with_color" != "$without_color" ]
+    [[ "$with_color" != "$without_color" ]]
 }
 
 @test "Script handles -n option (short for --no-colour)" {
     run "${BATS_TEST_DIRNAME}/${SCRIPT_NAME}" -n
     
     # Should run without errors
-    [ "$status" -eq 0 ]
+    [[ "$status" -eq 0 ]]
 }
 
 @test "Script handles --log option" {
@@ -77,10 +78,10 @@ teardown() {
     run "${BATS_TEST_DIRNAME}/${SCRIPT_NAME}" --log
     
     # Should run without errors
-    [ "$status" -eq 0 ]
+    [[ "$status" -eq 0 ]]
     
     # Check that log file was created
-    [ -f "${LOG_FILE}" ]
+    [[ -f "${LOG_FILE}" ]]
     
     # Clean up
     rm -f "${LOG_FILE}"
@@ -91,11 +92,11 @@ teardown() {
     run "${BATS_TEST_DIRNAME}/${SCRIPT_NAME}" -l
     
     # Should run without errors
-    [ "$status" -eq 0 ]
+    [[ "$status" -eq 0 ]]
     
     # Log file should be created and not empty
-    [ -f "${LOG_FILE}" ]
-    [ -s "${LOG_FILE}" ]
+    [[ -f "${LOG_FILE}" ]]
+    [[ -s "${LOG_FILE}" ]]
     
     # Clean up
     rm -f "${LOG_FILE}"
@@ -106,8 +107,8 @@ teardown() {
     run "${BATS_TEST_DIRNAME}/${SCRIPT_NAME}" --quiet
     
     # Should run without errors and have no output
-    [ "$status" -eq 0 ]
-    [ -z "$output" ]
+    [[ "$status" -eq 0 ]]
+    [[ -z "$output" ]]
 }
 
 @test "Script handles -q option (short for --quiet)" {
@@ -115,8 +116,8 @@ teardown() {
     run "${BATS_TEST_DIRNAME}/${SCRIPT_NAME}" -q
     
     # Should run without errors and have no output
-    [ "$status" -eq 0 ]
-    [ -z "$output" ]
+    [[ "$status" -eq 0 ]]
+    [[ -z "$output" ]]
 }
 
 @test "Script handles --timestamp option" {
@@ -124,7 +125,7 @@ teardown() {
     run "${BATS_TEST_DIRNAME}/${SCRIPT_NAME}" --timestamp
     
     # Should run without errors
-    [ "$status" -eq 0 ]
+    [[ "$status" -eq 0 ]]
     
     # Should have output with timestamp format [YYYY-MM-DD HH:MM:SS +ZZZZ]
     [[ "$output" =~ \[[0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}:[0-9]{2}:[0-9]{2}\ [+-][0-9]{4}\] ]]
@@ -135,7 +136,7 @@ teardown() {
     run "${BATS_TEST_DIRNAME}/${SCRIPT_NAME}" -t
     
     # Should run without errors
-    [ "$status" -eq 0 ]
+    [[ "$status" -eq 0 ]]
     
     # Should have output with timestamp format
     [[ "$output" =~ \[[0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}:[0-9]{2}:[0-9]{2}\ [+-][0-9]{4}\] ]]
@@ -146,7 +147,7 @@ teardown() {
     run "${BATS_TEST_DIRNAME}/${SCRIPT_NAME}" --invalid-option
     
     # Should exit with an error
-    [ "$status" -eq 1 ]
+    [[ "$status" -eq 1 ]]
     
     # Should show an error message
     [[ "$output" == *"Invalid parameter"* ]]
@@ -157,13 +158,13 @@ teardown() {
     run "${BATS_TEST_DIRNAME}/${SCRIPT_NAME}" --timestamp --log
     
     # Should run without errors
-    [ "$status" -eq 0 ]
+    [[ "$status" -eq 0 ]]
     
     # Should have timestamp in output
     [[ "$output" =~ \[[0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}:[0-9]{2}:[0-9]{2}\ [+-][0-9]{4}\] ]]
     
     # Check that log file was created
-    [ -f "${LOG_FILE}" ]
+    [[ -f "${LOG_FILE}" ]]
     
     # Clean up
     rm -f "${LOG_FILE}"
@@ -174,14 +175,14 @@ teardown() {
     run "${BATS_TEST_DIRNAME}/${SCRIPT_NAME}" --quiet --log
     
     # Should run without errors
-    [ "$status" -eq 0 ]
+    [[ "$status" -eq 0 ]]
     
     # Should have no output
-    [ -z "$output" ]
+    [[ -z "$output" ]]
     
     # But should still create a non-empty log file
-    [ -f "${LOG_FILE}" ]
-    [ -s "${LOG_FILE}" ]
+    [[ -f "${LOG_FILE}" ]]
+    [[ -s "${LOG_FILE}" ]]
 
     # Clean up
     rm -f "${LOG_FILE}"
@@ -192,10 +193,10 @@ teardown() {
     run "${BATS_TEST_DIRNAME}/${SCRIPT_NAME}"
     
     # Should run without errors
-    [ "$status" -eq 0 ]
+    [[ "$status" -eq 0 ]]
     
     # Check that lock directory doesn't exist after script completion
-    [ ! -d "/tmp/${SCRIPT_NAME}.${UID}.lock" ]
+    [[ ! -d "/tmp/${SCRIPT_NAME}.${UID}.lock" ]]
 }
 
 @test "Script fails when lock already exists" {
@@ -206,7 +207,7 @@ teardown() {
     run "${BATS_TEST_DIRNAME}/${SCRIPT_NAME}"
     
     # Should exit with an error
-    [ "$status" -eq 1 ]
+    [[ "$status" -eq 1 ]]
     
     # Should show an error message about lock
     [[ "$output" == *"Unable to acquire script lock"* ]]
@@ -220,7 +221,7 @@ teardown() {
     DEBUG=1 run "${BATS_TEST_DIRNAME}/${SCRIPT_NAME}"
     
     # Should run without errors
-    [ "$status" -eq 0 ]
+    [[ "$status" -eq 0 ]]
     
     # Output should contain trace information (bash commands with +)
     [[ "$output" == *"+"* ]]
@@ -253,3 +254,4 @@ teardown() {
     [[ "$output" == *"[ERR]"* ]]
     [[ "$output" == *"Test error message"* ]]
 }
+

@@ -9,7 +9,6 @@
 ## CREATED        : #~TIME~#
 ## LICENSE        : MIT License
 ## TEMCRE         : https://github.com/ralish/bash-script-template/blob/main/template.sh
-## TEMVER         : v2.0.2
 
 # ============================================================================ #
 # Helper flags
@@ -71,7 +70,7 @@ function _log() {
     # "${BASH_SOURCE[2]}" -> where the function that called sucesss() / error() / warn() / info() / debug() is defined
     # "${BASH_SOURCE[1]}" -> where sucesss() / error() / warn() / info() / debug() are defined
     # "${BASH_SOURCE[0]}" -> where log() is defined
-    # local -r script_name=${BASH_SOURCE[2]}"
+    local -r caller=$(basename "${0}")
     # "${BASH_LINENO[1]}" -> where sucesss() / error() / warn() / info() / debug() get called
     # "${BASH_LINENO[0]}" -> where log() get called
     local -r lineno="${BASH_LINENO[1]}"
@@ -91,13 +90,10 @@ function _log() {
         log_message="${format}"
     fi
 
-    # Define the log format
-    local -r log_format="%s%s[%s]: %b%-5s%b %s\n"
-
     # Output function
     _output() {
-        printf "${log_format}" \
-            "${timestamp}" "$(basename "${0}")" "${lineno}" \
+        printf "%s%s[%s]: %b%-5s%b %s\n" \
+            "${timestamp}" "${caller}" "${lineno}" \
             "${color}" "${log_type}" "${ta_none}" \
             "${log_message}"
     }
@@ -106,16 +102,21 @@ function _log() {
     _output >&2
 
     # Log to file if enabled
-    if [[ -n "${_flag_log-}" ]]; then
-        _output >> "/tmp/$(basename "${0}").log"
+    if [[ -n "${_flag_log-}" && -n "${script_name-}" ]]; then
+        _output >> "/tmp/${script_name}.log"
     fi
 }
 
 # Logging functions with printf-like behavior
+# shellcheck disable=SC2015,SC2310
 function success() { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_green}" "[SUC]" "$@" || _log "${ta_none}" "[SUC]" "$@"; } # SUC = success
+# shellcheck disable=SC2015,SC2310
 function error()   { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_red}" "[ERR]" "$@" || _log "${ta_none}" "[ERR]" "$@"; } # ERR = error
+# shellcheck disable=SC2015,SC2310
 function warn()    { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_yellow}" "[WRN]" "$@" || _log "${ta_none}" "[WRN]" "$@"; } # WRN = warning
+# shellcheck disable=SC2015,SC2310
 function info()    { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_blue}" "[INF]" "$@" || _log "${ta_none}" "[INF]" "$@"; } # INF = info
+# shellcheck disable=SC2015,SC2310
 function debug()   { [[ -n "${DEBUG-}" ]] && _log "${ta_none}" "[DBG]" "$@" || true; } # DBG = debug
 
 # DESC: Handler for unexpected errors
@@ -325,8 +326,10 @@ function script_init() {
     readonly orig_cwd="$PWD"
     readonly script_params="$*"
     readonly script_path="${BASH_SOURCE[0]}"
-    readonly script_dir="$(dirname "$script_path")"
-    readonly script_name="$(basename "$script_path")"
+    # shellcheck disable=SC2155
+    readonly script_dir="$(dirname "${script_path}")"
+    # shellcheck disable=SC2155
+    readonly script_name="$(basename "${script_path}")"
 }
 
 # DESC: Initialise Quiet mode
@@ -336,6 +339,7 @@ function script_init() {
 function quiet_init() {
     if [[ -n "${_flag_quiet-}" ]]; then
         # Redirect all output to a temporary file
+        # shellcheck disable=SC2312
         local -r script_output="$(mktemp --tmpdir "$script_name".XXXXX)"
         exec 3>&1 4>&2 1> "${script_output}" 2>&1
     fi
@@ -438,6 +442,7 @@ function check_superuser() {
             if ! sudo -v; then
                 error "Sudo: Couldn't acquire credentials ..."
             else
+                # shellcheck disable=SC2312
                 local -r test_euid="$(sudo -H -- "$BASH" -c 'printf "%s" "$EUID"')"
                 if [[ "${test_euid}" -eq 0 ]]; then
                     superuser=true
@@ -538,6 +543,11 @@ function parse_params() {
                 exit 0
                 ;;
             *)
+                # internal function calling
+                if declare -F "$param" &>/dev/null; then
+                    "$param" "$@"
+                    exit 0
+                fi
                 script_exit "Invalid parameter was provided: $param" 1
                 ;;
         esac
