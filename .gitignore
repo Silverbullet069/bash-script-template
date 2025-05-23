@@ -35,4 +35,4 @@ temp/
 [._]ss[a-gi-z]
 [._]sw[a-p]
 
-tests/test_helper/
+node_modules

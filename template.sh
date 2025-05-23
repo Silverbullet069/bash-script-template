@@ -3,7 +3,7 @@
 ## FILE        : #~NAME~#
 ## DESCRIPTION : General Bash script template
 ## CREATED     : #~TIME~#
-## TEMVER      : vv2.0.0
+## TEMVER      : v2.0.0
 ## TEMRELEASE  : https://github.com/Silverbullet069/bash-script-template/releases/tag/v2.0.0
 ## AUTHOR      : ralish (https://github.com/ralish/)
 ## CONTRIBUTOR : Silverbullet069 (https://github.com/Silverbullet069/)
