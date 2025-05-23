@@ -10,7 +10,7 @@ updates:
     # Docs: https://github.blog/changelog/2024-04-29-dependabot-multi-directory-configuration-public-beta-now-available/
     directories:
       - "/" # bats-core
-      - "/tests/test_helper/bats*" # bats library
+      #- "/tests/test_helper/bats*" # bats library, ignore since they're submodules
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 2
