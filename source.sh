@@ -3,8 +3,8 @@
 ## FILE        : #~NAME~#
 ## DESCRIPTION : A sourced script that contains reusable functions
 ## CREATED     : #~TIME~#
-## TEMVER      : v1.0.0
-## TEMRELEASE  : https://github.com/Silverbullet069/bash-script-template/releases/tag/v1.0.0
+## TEMVER      : v2.0.0
+## TEMRELEASE  : https://github.com/Silverbullet069/bash-script-template/releases/tag/v2.0.0
 ## AUTHOR      : ralish (https://github.com/ralish/)
 ## CONTRIBUTOR : Silverbullet069 (https://github.com/Silverbullet069/)
 ## LICENSE     : MIT License
