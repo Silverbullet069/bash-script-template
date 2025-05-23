@@ -17,8 +17,21 @@ insert_final_newline = true
 trim_trailing_whitespace = false
 
 # Shell scripts
+# Examples: https://github.com/mvdan/sh/blob/master/cmd/shfmt/shfmt.1.scd#examples
 [*.sh]
-max_line_length = 79
+max_line_length = 80
+
+binary_next_line = true         # shfmt: -bn
 keep_padding = true             # shfmt: -kp
-space_redirects = true          # shfmt: -sr
 switch_case_indent = true       # shfmt: -ci
+space_redirects = true          # shfmt: -sr
+keep_padding = true             # shfmt: -kp
+
+# YAML
+[*.yml]
+indent_size = 2
+
+[*.yaml]
+indent_size = 2
+
+

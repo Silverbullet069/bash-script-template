@@ -1,29 +1,28 @@
 #!/usr/bin/env bash
 
-## FILE        : source.sh
-## DESCRIPTION : Bash script with many useful, reusable utility functions.
-##               ONLY for sourcing into other scripts so it contains functions
-##               which are unlikely to be modified. DRY and easy to refactor.
-## CREATED     : 2025-02-08 19:10:03
-## AUTHOR      : ralish and Silverbullet069
+## FILE        : #~NAME~#
+## DESCRIPTION : A sourced script that contains reusable functions
+## CREATED     : #~TIME~#
+## TEMVER      : 1.0.0
+## TEMRELEASE  : https://github.com/Silverbullet069/bash-script-template/releases/tag/1.0.0
+## AUTHOR      : ralish (https://github.com/ralish/)
+## CONTRIBUTOR : Silverbullet069 (https://github.com/Silverbullet069/)
 ## LICENSE     : MIT License
-## CREDIT      : https://github.com/ralish/bash-script-template/blob/main/source.sh
 
-###############################################################################
-
-# ============================================================================ #
-# Internal function
 # ============================================================================ #
 
 # NOTE: Important to set first as we use it in _log() and exit handler
 # shellcheck disable=SC2155
 readonly ta_none="$(tput sgr0 2> /dev/null || true)"
 
+# Log levels associative array wiht ascending severity
+declare -rA LOG_LEVELS=(["DBG"]=0 ["INF"]=1 ["WRN"]=2 ["ERR"]=3)
+
 # DESC: Print message with printf-like formatting and appropriate styling
 # ARGS: $1 (required): The color of the message
-#       $2 (required): The type of log (SUC, ERR, WRN, INF, DBG)
-#       $3 (required): The format string
-#       $4+ (optional): Arguments for the format string
+#       $2 (required): The type of log
+#       $3 (required): The formatted string or non-format string.
+#       $4+ (optional): Arguments for the format string if $3 is a formatted string
 # OUTS: Message to stderr and optionally to a log file
 # RETS: 0
 function _log() {
@@ -36,6 +35,12 @@ function _log() {
     local -r log_type="$2"
     local -r format="$3"
     shift 3
+
+    # Check if current log level is lower than configured level
+    # If _flag_log_level hasn't been specified, print everything
+    if [[ ${LOG_LEVELS["${log_type}"]} -lt ${LOG_LEVELS["${_flag_log_level:-DBG}"]} ]]; then
+        return 0
+    fi
 
     # If color is disabled
     if [[ -n "${_flag_no_colour-}" ]]; then
@@ -64,34 +69,17 @@ function _log() {
         log_message="${format}"
     fi
 
-    # Output function
-    _output() {
-        printf "%s%s[%s]: %b%-5s%b %s\n" \
+    printf "%s%s[%s]: %b[%-3s]%b %s\n" \
             "${timestamp}" "${caller}" "${lineno}" \
             "${color}" "${log_type}" "${ta_none}" \
             "${log_message}"
-    }
-
-    # Print to stderr
-    _output >&2
-
-    # Log to file if enabled
-    if [[ -n "${_flag_log-}" && -n "${script_name-}" ]]; then
-        _output >> "/tmp/${script_name}.log"
-    fi
 }
 
-# Logging functions with printf-like behavior
 # shellcheck disable=SC2015,SC2310
-function success() { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_green}" "[SUC]" "$@" || _log "${ta_none}" "[SUC]" "$@"; } # SUC = success
-# shellcheck disable=SC2015,SC2310
-function error()   { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_red}" "[ERR]" "$@" || _log "${ta_none}" "[ERR]" "$@"; } # ERR = error
-# shellcheck disable=SC2015,SC2310
-function warn()    { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_yellow}" "[WRN]" "$@" || _log "${ta_none}" "[WRN]" "$@"; } # WRN = warning
-# shellcheck disable=SC2015,SC2310
-function info()    { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_blue}" "[INF]" "$@" || _log "${ta_none}" "[INF]" "$@"; } # INF = info
-# shellcheck disable=SC2015,SC2310
-function debug()   { [[ -n "${DEBUG-}" ]] && _log "${ta_none}" "[DBG]" "$@" || true; } # DBG = debug
+function debug() { _log "${ta_none}" "DBG" "$@"; }
+function info()  { _log "${ta_bold:-$ta_none}${fg_blue:-$ta_none}" "INF" "$@"; }
+function warn()  { _log "${ta_bold:-$ta_none}${fg_yellow:-$ta_none}" "WRN" "$@"; }
+function error() { _log "${ta_bold:-$ta_none}${fg_red:-$ta_none}" "ERR" "$@"; }
 
 # DESC: Handler for unexpected errors
 # ARGS: $1 (optional): Exit code (defaults to 1)
@@ -148,15 +136,13 @@ function script_trap_exit() {
     cd "${orig_cwd}"
 
     # Remove Quiet mode script log
-    if [[ -n "${_flag_quiet-}" && -f "${script_output-}" ]]; then
-        rm "${script_output}"
-        info "Remove file: ${script_output}"
+    if [[ -n "${_flag_quiet-}" && -n "${script_output-}" ]]; then
+        rm -v "${script_output}"
     fi
 
     # Remove script execution lock
     if [[ -d "${script_lock-}" ]]; then
-        rmdir "${script_lock}"
-        info "Remove script lock: ${script_lock}"
+        rmdir -v "${script_lock}"
     fi
 
     # Restore terminal colours
@@ -181,7 +167,7 @@ function script_exit() {
 
     # Handle success cases
     if [[ $# -eq 1 || ("${2-}" =~ ^[0-9]+$ && "${2}" -eq 0) ]]; then
-        success "$1"
+        info "$1"
         exit 0
     fi
 
@@ -195,7 +181,6 @@ function script_exit() {
     script_exit 'Missing required argument to script_exit()!' 2
 }
 
-
 # DESC: Initialise colour variables
 # ARGS: None
 # OUTS: Read-only variables with ANSI control codes
@@ -205,7 +190,6 @@ function script_exit() {
 #       but ensures the terminal output isn't mangled when running with xtrace.
 # shellcheck disable=SC2034,SC2155
 function colour_init() {
-    readonly init_colour=true
 
     if [[ -z "${_flag_no_colour-}" ]]; then
         # Text attributes
@@ -300,7 +284,7 @@ function colour_init() {
 # shellcheck disable=SC2034
 function script_init() {
     # Useful variables
-    readonly orig_cwd="$PWD"
+    readonly orig_cwd="${PWD}"
     readonly script_params="$*"
     readonly script_path="$(realpath "$0")"
     readonly script_dir="$(dirname "${script_path}")"
@@ -431,7 +415,7 @@ function check_superuser() {
         return 1
     fi
 
-    success 'Successfully acquired superuser credentials.'
+    info 'Successfully acquired superuser credentials.'
     return 0
 }
 

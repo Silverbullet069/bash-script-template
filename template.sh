@@ -1,55 +1,27 @@
 #!/usr/bin/env bash
 
-## FILE           : #~NAME~#
-## DESCRIPTION    : A best practices Bash script template with many useful functions.
-##                  This file combines the source.sh & script.sh files into a single
-##                  script. If you want your script to be entirely self-contained then
-##                  this should be what you want!
-## AUTHOR         : Silverbullet069
-## CREATED        : #~TIME~#
-## LICENSE        : MIT License
-## TEMCRE         : https://github.com/ralish/bash-script-template/blob/main/template.sh
+## FILE        : #~NAME~#
+## DESCRIPTION : General Bash script template
+## CREATED     : #~TIME~#
+## TEMVER      : 1.0.0
+## TEMRELEASE  : https://github.com/Silverbullet069/bash-script-template/releases/tag/1.0.0
+## AUTHOR      : ralish (https://github.com/ralish/)
+## CONTRIBUTOR : Silverbullet069 (https://github.com/Silverbullet069/)
+## LICENSE     : MIT License
 
 # ============================================================================ #
-# Helper flags
-# ============================================================================ #
-
-# Enable xtrace if the DEBUG environment variable is set
-if [[ "${DEBUG-}" =~ ^1|yes|true$ ]]; then
-    set -o xtrace       # Trace the execution of the script (debug)
-fi
-
-# Only enable these shell behaviours if we're not being sourced
-# Approach via: https://stackoverflow.com/a/28776166/8787985
-if ! (return 0 2> /dev/null); then
-    # A better class of script...
-    set -o errexit      # Exit on most errors (see the manual)
-    set -o nounset      # Disallow expansion of unset variables
-    set -o pipefail     # Use last non-zero exit code in a pipeline
-fi
-
-# Enable errtrace or the error trap handler will not work as expected
-set -o errtrace         # Ensure the error trap handler is inherited
-
-# Make `for f in *.txt` work even if *.txt matches zero files
-shopt -s nullglob globstar
-
-# Set IFS to preferred implementation
-# IFS=$' '
-
-# ============================================================================ #
-# Internal function
-# ============================================================================ #
-
 # NOTE: Important to set first as we use it in _log() and exit handler
 # shellcheck disable=SC2155
 readonly ta_none="$(tput sgr0 2> /dev/null || true)"
 
+# Log levels associative array wiht ascending severity
+declare -rA LOG_LEVELS=(["DBG"]=0 ["INF"]=1 ["WRN"]=2 ["ERR"]=3)
+
 # DESC: Print message with printf-like formatting and appropriate styling
 # ARGS: $1 (required): The color of the message
-#       $2 (required): The type of log (SUCCESS, ERROR, WARN, INFO, DEBUG)
-#       $3 (required): The format string
-#       $4+ (optional): Arguments for the format string
+#       $2 (required): The type of log
+#       $3 (required): The formatted string or non-format string.
+#       $4+ (optional): Arguments for the format string if $3 is a formatted string
 # OUTS: Message to stderr and optionally to a log file
 # RETS: 0
 function _log() {
@@ -63,6 +35,12 @@ function _log() {
     local -r format="$3"
     shift 3
 
+    # Check if current log level is lower than configured level
+    # If _flag_log_level hasn't been specified, print everything
+    if [[ ${LOG_LEVELS["${log_type}"]} -lt ${LOG_LEVELS["${_flag_log_level:-DBG}"]} ]]; then
+        return 0
+    fi
+
     # If color is disabled
     if [[ -n "${_flag_no_colour-}" ]]; then
         color="${ta_none}"
@@ -70,7 +48,7 @@ function _log() {
     # "${BASH_SOURCE[2]}" -> where the function that called sucesss() / error() / warn() / info() / debug() is defined
     # "${BASH_SOURCE[1]}" -> where sucesss() / error() / warn() / info() / debug() are defined
     # "${BASH_SOURCE[0]}" -> where log() is defined
-    local -r caller=$(basename "${0}")
+    local -r caller=$(basename "${BASH_SOURCE[2]}")
     # "${BASH_LINENO[1]}" -> where sucesss() / error() / warn() / info() / debug() get called
     # "${BASH_LINENO[0]}" -> where log() get called
     local -r lineno="${BASH_LINENO[1]}"
@@ -90,34 +68,17 @@ function _log() {
         log_message="${format}"
     fi
 
-    # Output function
-    _output() {
-        printf "%s%s[%s]: %b%-5s%b %s\n" \
+    printf "%s%s[%s]: %b[%-3s]%b %s\n" \
             "${timestamp}" "${caller}" "${lineno}" \
             "${color}" "${log_type}" "${ta_none}" \
             "${log_message}"
-    }
-
-    # Print to stderr
-    _output >&2
-
-    # Log to file if enabled
-    if [[ -n "${_flag_log-}" && -n "${script_name-}" ]]; then
-        _output >> "/tmp/${script_name}.log"
-    fi
 }
 
-# Logging functions with printf-like behavior
 # shellcheck disable=SC2015,SC2310
-function success() { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_green}" "[SUC]" "$@" || _log "${ta_none}" "[SUC]" "$@"; } # SUC = success
-# shellcheck disable=SC2015,SC2310
-function error()   { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_red}" "[ERR]" "$@" || _log "${ta_none}" "[ERR]" "$@"; } # ERR = error
-# shellcheck disable=SC2015,SC2310
-function warn()    { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_yellow}" "[WRN]" "$@" || _log "${ta_none}" "[WRN]" "$@"; } # WRN = warning
-# shellcheck disable=SC2015,SC2310
-function info()    { [[ -n "${init_colour-}" ]] && _log "${ta_bold}${fg_blue}" "[INF]" "$@" || _log "${ta_none}" "[INF]" "$@"; } # INF = info
-# shellcheck disable=SC2015,SC2310
-function debug()   { [[ -n "${DEBUG-}" ]] && _log "${ta_none}" "[DBG]" "$@" || true; } # DBG = debug
+function debug() { _log "${ta_none}" "DBG" "$@"; }
+function info()  { _log "${ta_bold:-$ta_none}${fg_blue:-$ta_none}" "INF" "$@"; }
+function warn()  { _log "${ta_bold:-$ta_none}${fg_yellow:-$ta_none}" "WRN" "$@"; }
+function error() { _log "${ta_bold:-$ta_none}${fg_red:-$ta_none}" "ERR" "$@"; }
 
 # DESC: Handler for unexpected errors
 # ARGS: $1 (optional): Exit code (defaults to 1)
@@ -174,7 +135,7 @@ function script_trap_exit() {
     cd "${orig_cwd}"
 
     # Remove Quiet mode script log
-    if [[ -n "${_flag_quiet-}" && -f "${script_output-}" ]]; then
+    if [[ -n "${_flag_quiet-}" && -n "${script_output-}" ]]; then
         rm -v "${script_output}"
     fi
 
@@ -205,7 +166,7 @@ function script_exit() {
 
     # Handle success cases
     if [[ $# -eq 1 || ("${2-}" =~ ^[0-9]+$ && "${2}" -eq 0) ]]; then
-        success "$1"
+        info "$1"
         exit 0
     fi
 
@@ -228,7 +189,6 @@ function script_exit() {
 #       but ensures the terminal output isn't mangled when running with xtrace.
 # shellcheck disable=SC2034,SC2155
 function colour_init() {
-    readonly init_colour=true
 
     if [[ -z "${_flag_no_colour-}" ]]; then
         # Text attributes
@@ -323,12 +283,10 @@ function colour_init() {
 # shellcheck disable=SC2034
 function script_init() {
     # Useful variables
-    readonly orig_cwd="$PWD"
+    readonly orig_cwd="${PWD}"
     readonly script_params="$*"
-    readonly script_path="${BASH_SOURCE[0]}"
-    # shellcheck disable=SC2155
+    readonly script_path="$(realpath "$0")"
     readonly script_dir="$(dirname "${script_path}")"
-    # shellcheck disable=SC2155
     readonly script_name="$(basename "${script_path}")"
 }
 
@@ -340,7 +298,7 @@ function quiet_init() {
     if [[ -n "${_flag_quiet-}" ]]; then
         # Redirect all output to a temporary file
         # shellcheck disable=SC2312
-        local -r script_output="$(mktemp --tmpdir "$script_name".XXXXX)"
+        local -r script_output="$(mktemp --tmpdir "${script_name}".XXXXX)"
         exec 3>&1 4>&2 1> "${script_output}" 2>&1
     fi
 }
@@ -456,7 +414,7 @@ function check_superuser() {
         return 1
     fi
 
-    success 'Successfully acquired superuser credentials.'
+    info 'Successfully acquired superuser credentials.'
     return 0
 }
 
@@ -484,9 +442,16 @@ function run_as_root() {
     fi
 }
 
-# ============================================================================ #
-# User start here                                                              #
-# ============================================================================ #
+# vim: syntax=sh cc=80 tw=79 ts=4 sw=4 sts=4 et sr
+# Define all flags in a single location
+# NOTE: flag naming convention is snake_case
+readonly _SCRIPT_FLAGS=(
+    "log_level"
+    "no_colour"
+    "quiet"
+    "timestamp"
+    # add your options here...
+)
 
 # DESC: Usage help
 # ARGS: None
@@ -497,14 +462,17 @@ function script_usage() {
 
 Usage: #~NAME~# [OPTIONS] ...
 
-TODO: Add short description and examples here...
+Add short description and examples here...
 
 Options:
-    -l, --log                   Redirect output to plaintext log file
+    -l, --log-level             Specify log levels (DBG, INF, WRN, ERR).
+                                Set DEBUG=1 environment variable to turn on Bash debug mode
     -n, --no-colour             Disables colour output
     -q, --quiet                 Run silently unless an error is encountered
     -t, --timestamp             Enables timestamp output
     -h, --help                  Displays this help and exit
+
+
 EOF
 }
 
@@ -512,22 +480,25 @@ EOF
 # ARGS: $@ (optional): Arguments provided to the script
 # OUTS: Variables indicating command-line parameters and options
 # RETS: None
-# NOTE: Refrain from type checking, let the lower-level tool do it
 function parse_params() {
 
-    # initialize with default values
-    _flag_log=
-    _flag_no_colour=
-    _flag_quiet=
-    _flag_timestamp=
+    # Initialize all flags with empty values
+    for flag in "${_SCRIPT_FLAGS[@]}"; do
+        declare -g "_flag_${flag}="
+    done
 
     # parse provided arguments
     while [[ $# -gt 0 ]]; do
         local param="${1}"
         shift
         case "${param}" in
-            -l | --log)
-                _flag_log=true
+            # Built-in options
+            -l | --log-level)
+                _flag_log_level="${1}"
+                shift
+                if [[ -z "${LOG_LEVELS[$_flag_log_level]}" ]]; then
+                    script_exit "Invalid log level. Please pick again: ${LOG_LEVELS[*]}" 2
+                fi
                 ;;
             -n | --no-colour)
                 _flag_no_colour=true
@@ -544,25 +515,19 @@ function parse_params() {
                 ;;
             *)
                 # internal function calling
-                if declare -F "$param" &>/dev/null; then
-                    "$param" "$@"
+                if declare -F "${param}" &> /dev/null; then
+                    "${param}" "$@"
                     exit 0
                 fi
                 script_exit "Invalid parameter was provided: $param" 1
                 ;;
         esac
     done
-}
 
-# DESC: Make parameters globally readonly *after* parsing
-# ARGS: None
-# OUTS: Read-only variables indicating command-line parameters and options
-# RETS: None
-function finalize_params() {
-    readonly _flag_log
-    readonly _flag_no_colour
-    readonly _flag_quiet
-    readonly _flag_timestamp
+    # make the flags read-only
+    for flag in "${_SCRIPT_FLAGS[@]}"; do
+        readonly "_flag_${flag}"
+    done
 }
 
 # DESC: Main control flow
@@ -575,13 +540,39 @@ function main() {
 
     script_init "$@"
     parse_params "$@"
-    finalize_params
     quiet_init
     colour_init
     lock_init user
 
     # start here
 }
+
+# ============================================================================ #
+# Helper flags
+# ============================================================================ #
+
+# Enable xtrace if the DEBUG environment variable is set
+if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
+    set -o xtrace # Trace the execution of the script (debug)
+fi
+
+# Only enable these shell behaviours if we're not being sourced
+# Approach via: https://stackoverflow.com/a/28776166/8787985
+if ! (return 0 2> /dev/null); then
+    # A better class of script...
+    set -o errexit  # Exit on most errors (see the manual)
+    set -o nounset  # Disallow expansion of unset variables
+    set -o pipefail # Use last non-zero exit code in a pipeline
+fi
+
+# Enable errtrace or the error trap handler will not work as expected
+set -o errtrace # Ensure the error trap handler is inherited
+
+# Make `for f in *.txt` work when `*.txt` matches zero files
+shopt -s nullglob globstar
+
+# Set IFS to preferred implementation
+# IFS=$' '
 
 # Invoke main with args if not sourced
 # Approach via: https://stackoverflow.com/a/28776166/8787985
