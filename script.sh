@@ -142,7 +142,7 @@ shopt -s nullglob globstar
 
 # shellcheck source=source.sh
 # shellcheck disable=SC1091
-source "/home/$USER/LocalRepository/bash-script-template/source.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
 
 # Invoke main with args if not sourced
 # Approach via: https://stackoverflow.com/a/28776166/8787985

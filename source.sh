@@ -46,9 +46,9 @@ function _log() {
     if [[ -n "${_flag_no_colour-}" ]]; then
         color="${ta_none}"
     fi
-    # "${BASH_SOURCE[2]}" -> where the function that called sucesss() / error() / warn() / info() / debug() is defined
-    # "${BASH_SOURCE[1]}" -> where sucesss() / error() / warn() / info() / debug() are defined
-    # "${BASH_SOURCE[0]}" -> where log() is defined
+    # "${BASH_SOURCE[2]}" -> abs path to script that defined the function that called error() / warn() / info() / debug() functions
+    # "${BASH_SOURCE[1]}" -> abs path to script that defined error() / warn() / info() / debug() functions
+    # "${BASH_SOURCE[0]}" -> abs path to script that defined _log() function
     local -r caller=$(basename "${BASH_SOURCE[2]}")
     # "${BASH_LINENO[1]}" -> where sucesss() / error() / warn() / info() / debug() get called
     # "${BASH_LINENO[0]}" -> where log() get called
