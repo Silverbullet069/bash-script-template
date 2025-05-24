@@ -22,7 +22,23 @@ jobs:
       # `git config [OPTIONS] + git clone [OPTIONS]` in a nutshell
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Setup Bats and bats libs
+
+      - name: Cache Bats dependencies
+        id: cache-bats-libs
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-bats-libs
+        with:
+          path: "${{ github.workspace }}/tests/test_helper"
+          key: ${{ runner.os }}-tests-${{ env.cache-name }}-${{ hashFiles('**/package.json') }} # not every submodules have package-lock.json? Weird
+          # a new cache is created when the content of `package.json` change, or when the runner's operating system changes
+          restore-keys: |
+            ${{ runner.os }}-tests-${{ env.cache-name }}
+            ${{ runner.os }}-tests-
+            ${{ runner.os }}-
+
+      - if: ${{ steps.cache-bats-libs.outputs.cache-hit != 'true' }}
+        name: Setup Bats and bats libs
         # provide subsequent steps with output from the step
         id: setup-bats
         uses: bats-core/bats-action@3.0.0
