@@ -4,7 +4,6 @@
 ## DESCRIPTION : Build script that merge source.sh and script.sh into one
 ## CREATED     : #~TIME~#
 ## TEMVER      : v2.0.0
-## TEMRELEASE  : https://github.com/Silverbullet069/bash-script-template/releases/tag/v2.0.0
 ## AUTHOR      : ralish (https://github.com/ralish/)
 ## CONTRIBUTOR : Silverbullet069 (https://github.com/Silverbullet069/)
 ## LICENSE     : MIT License
@@ -27,9 +26,9 @@ set -o pipefail         # Use last non-zero exit code in a pipeline
 # Main control flow
 function main() {
 
-    source_content_no_header=$(tail -n +14 source.sh)
-    script_header=$(head -n 13 script.sh)
-    script_content_no_header=$(tail -n +14 script.sh)
+    source_content_no_header=$(tail -n +11 source.sh)
+    script_header=$(head -n 11 script.sh)
+    script_content_no_header=$(tail -n +11 script.sh)
     # Remove shellcheck source lines
     script_content_no_header=$(echo "${script_content_no_header}" | grep -v "# shellcheck source=source.sh" | grep -v "# shellcheck disable=SC1091" | grep -v '^source.*source\.sh"')
 

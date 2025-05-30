@@ -37,8 +37,7 @@ jobs:
             ${{ runner.os }}-tests-
             ${{ runner.os }}-
 
-      - if: ${{ steps.cache-bats-libs.outputs.cache-hit != 'true' }}
-        name: Setup Bats and bats libs
+      - name: Setup Bats and bats libs
         # provide subsequent steps with output from the step
         id: setup-bats
         uses: bats-core/bats-action@3.0.0

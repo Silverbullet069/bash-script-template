@@ -60,13 +60,45 @@ teardown() {
 
 @test "Script handles -l. --log-level option" {
 
-    run "${SCRIPT_UNDER_TEST}" --log-level ERR "info" "Test info message"
+    run "${SCRIPT_UNDER_TEST}" --log-level ERR
     assert_success
-    refute_output --partial "Test info message"
+    assert_output --partial "This is an error message"
+    refute_output --partial "This is a warning message"
+    refute_output --partial "This is an info message"
+    refute_output --partial "This is a debug message"
 
-    run "${SCRIPT_UNDER_TEST}" -l ERR "info" "Test info message"
+    run "${SCRIPT_UNDER_TEST}" --log-level WRN
     assert_success
-    refute_output --partial "Test info message"
+    assert_output --partial "This is an error message"
+    assert_output --partial "This is a warning message"
+    refute_output --partial "This is an info message"
+    refute_output --partial "This is a debug message"
+
+    run "${SCRIPT_UNDER_TEST}" --log-level INF
+    assert_success
+    assert_output --partial "This is an error message"
+    assert_output --partial "This is a warning message"
+    assert_output --partial "This is an info message"
+    refute_output --partial "This is a debug message"
+
+    run "${SCRIPT_UNDER_TEST}" --log-level DBG
+    assert_output --partial "This is an error message"
+    assert_output --partial "This is a warning message"
+    assert_output --partial "This is an info message"
+    assert_output --partial "This is a debug message"
+
+    run "${SCRIPT_UNDER_TEST}" # ignore option
+    assert_output --partial "This is an error message"
+    assert_output --partial "This is a warning message"
+    assert_output --partial "This is an info message"
+    assert_output --partial "This is a debug message"
+
+    run "${SCRIPT_UNDER_TEST}" -l ERR
+    assert_success
+    assert_output --partial "This is an error message"
+    refute_output --partial "This is a warning message"
+    refute_output --partial "This is an info message"
+    refute_output --partial "This is a debug message"
 }
 
 @test "Script handles -q, --quiet option" {
