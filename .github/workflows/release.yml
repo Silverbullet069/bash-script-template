@@ -1,0 +1,60 @@
+name: Create Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+    types: [closed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # triggered when a new tag is pushed or a PR is merged into 'main'
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        # NOTE: if you want to reuse commit messages as release note's body
+        # NOTE: fetch all code history
+        # with:
+        ### fetch-depth: 0
+
+      # this step outputs the version
+      # refer to it as ${{ steps.get_version.outputs.version }}`
+      - name: Check if current version is the same as the latest version
+        id: check_version
+        if: hashFiles('package.json') != ''
+        run: |
+          VERSION="v$(jq -r '.version' package.json)"
+          echo "version=${VERSION}" >> ${GITHUB_OUTPUT}
+
+          LATEST_VERSION=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
+          if [[ "${VERSION}" == "${LATEST_VERSION}" ]]; then
+            echo "skip_release=true" >> ${GITHUB_OUTPUT}
+          else
+            echo "skip_release=false" >> ${GITHUB_OUTPUT}
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release
+        if: steps.check_version.outputs.skip_release == 'false'
+        run: |
+          gh release create \
+          ${{ steps.check_version.outputs.version }} \
+          --title ${{ steps.check_version.outputs.version }} \
+          --fail-on-no-commits \
+          --verify-tag \
+          --target main \
+          --generate-notes \
+          --latest \
+          source.sh script.sh template.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
