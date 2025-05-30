@@ -3,8 +3,7 @@
 ## FILE        : #~NAME~#
 ## DESCRIPTION : General Bash script template
 ## CREATED     : #~TIME~#
-## TEMVER      : v2.0.0
-## TEMRELEASE  : https://github.com/Silverbullet069/bash-script-template/releases/tag/v2.0.0
+## TEMVER      : #~VERSION~#
 ## AUTHOR      : ralish (https://github.com/ralish/)
 ## CONTRIBUTOR : Silverbullet069 (https://github.com/Silverbullet069/)
 ## LICENSE     : MIT License
@@ -45,9 +44,9 @@ function _log() {
     if [[ -n "${_flag_no_colour-}" ]]; then
         color="${ta_none}"
     fi
-    # "${BASH_SOURCE[2]}" -> where the function that called sucesss() / error() / warn() / info() / debug() is defined
-    # "${BASH_SOURCE[1]}" -> where sucesss() / error() / warn() / info() / debug() are defined
-    # "${BASH_SOURCE[0]}" -> where log() is defined
+    # "${BASH_SOURCE[2]}" -> abs path to script that defined the function that called error() / warn() / info() / debug() functions
+    # "${BASH_SOURCE[1]}" -> abs path to script that defined error() / warn() / info() / debug() functions
+    # "${BASH_SOURCE[0]}" -> abs path to script that defined _log() function
     local -r caller=$(basename "${BASH_SOURCE[2]}")
     # "${BASH_LINENO[1]}" -> where sucesss() / error() / warn() / info() / debug() get called
     # "${BASH_LINENO[0]}" -> where log() get called
@@ -471,8 +470,6 @@ Options:
     -q, --quiet                 Run silently unless an error is encountered
     -t, --timestamp             Enables timestamp output
     -h, --help                  Displays this help and exit
-
-
 EOF
 }
 
@@ -483,9 +480,26 @@ EOF
 function parse_params() {
 
     # Initialize all flags with empty values
-    for flag in "${_SCRIPT_FLAGS[@]}"; do
-        declare -g "_flag_${flag}="
-    done
+    # for flag in "${_SCRIPT_FLAGS[@]}"; do
+    #     declare -g "_flag_${flag}="
+    # done
+
+    # Extract flags from script_usage() function
+    # - First, extract the block from Options: to EOF using 2 regexes
+    # - Second, remove the 1st and last line (i.e. Options: and EOF)
+    # shellcheck disable=SC2312
+    local -r usage_content=$(declare -f script_usage | sed -n '/^Options:$/,/^EOF$/p' | sed '1d;$d')
+
+    local flags=()
+    while IFS= read -r line; do
+        if [[ $line =~ -\([a-z]\),\ --\([a-z-]+\) ]]; then
+            # Extract long option only and convert hyphens to underscores
+            flags+=("${BASH_REMATCH[2]//-/_}")
+        elif [[ $line =~ --\([a-z-]+\) ]]; then
+            # Extract long option only and convert hyphens to underscores
+            flags+=("${BASH_REMATCH[1]//-/_}")
+        fi
+    done <<< "$usage_content"
 
     # parse provided arguments
     while [[ $# -gt 0 ]]; do
@@ -497,7 +511,7 @@ function parse_params() {
                 _flag_log_level="${1}"
                 shift
                 if [[ -z "${LOG_LEVELS[$_flag_log_level]}" ]]; then
-                    script_exit "Invalid log level. Please pick again: ${LOG_LEVELS[*]}" 2
+                    script_exit "Invalid log level: ${_flag_log_level}. Choose 1 of the following: ${LOG_LEVELS[*]}" 2
                 fi
                 ;;
             -n | --no-colour)
@@ -525,7 +539,7 @@ function parse_params() {
     done
 
     # make the flags read-only
-    for flag in "${_SCRIPT_FLAGS[@]}"; do
+    for flag in "${flags[@]}"; do
         readonly "_flag_${flag}"
     done
 }

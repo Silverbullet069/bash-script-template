@@ -3,8 +3,7 @@
 ## FILE        : #~NAME~#
 ## DESCRIPTION : A sourced script that contains reusable functions
 ## CREATED     : #~TIME~#
-## TEMVER      : v2.0.0
-## TEMRELEASE  : https://github.com/Silverbullet069/bash-script-template/releases/tag/v2.0.0
+## TEMVER      : #~VERSION~#
 ## AUTHOR      : ralish (https://github.com/ralish/)
 ## CONTRIBUTOR : Silverbullet069 (https://github.com/Silverbullet069/)
 ## LICENSE     : MIT License
@@ -49,10 +48,16 @@ function _log() {
     # "${BASH_SOURCE[2]}" -> abs path to script that defined the function that called error() / warn() / info() / debug() functions
     # "${BASH_SOURCE[1]}" -> abs path to script that defined error() / warn() / info() / debug() functions
     # "${BASH_SOURCE[0]}" -> abs path to script that defined _log() function
-    local -r caller=$(basename "${BASH_SOURCE[2]}")
+    local caller=$(basename "${BASH_SOURCE[2]}")
     # "${BASH_LINENO[1]}" -> where sucesss() / error() / warn() / info() / debug() get called
     # "${BASH_LINENO[0]}" -> where log() get called
-    local -r lineno="${BASH_LINENO[1]}"
+    local lineno="${BASH_LINENO[1]}"
+
+    # if main() call script_exit(), and script_exit() called error() / warn() / info() / debug()
+    if [[ "${FUNCNAME[2]}" == "script_exit" ]]; then
+        caller="$(basename "${BASH_SOURCE[3]}")"
+        lineno="${BASH_LINENO[2]}"
+    fi
 
     # Handle timestamp if enabled
     local timestamp=""

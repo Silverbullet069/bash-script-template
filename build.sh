@@ -3,8 +3,7 @@
 ## FILE        : #~NAME~#
 ## DESCRIPTION : Build script that merge source.sh and script.sh into one
 ## CREATED     : #~TIME~#
-## TEMVER      : v2.0.0
-## TEMRELEASE  : https://github.com/Silverbullet069/bash-script-template/releases/tag/v2.0.0
+## TEMVER      : #~VERSION~#
 ## AUTHOR      : ralish (https://github.com/ralish/)
 ## CONTRIBUTOR : Silverbullet069 (https://github.com/Silverbullet069/)
 ## LICENSE     : MIT License
