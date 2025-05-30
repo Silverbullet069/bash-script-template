@@ -16,7 +16,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     # triggered when a new tag is pushed or a PR is merged into 'main'
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
 
     steps:
       - name: Checkout code
