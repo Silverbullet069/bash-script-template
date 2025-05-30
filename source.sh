@@ -3,7 +3,7 @@
 ## FILE        : #~NAME~#
 ## DESCRIPTION : A sourced script that contains reusable functions
 ## CREATED     : #~TIME~#
-## TEMVER      : #~VERSION~#
+## TEMVER      : v2.1.0
 ## AUTHOR      : ralish (https://github.com/ralish/)
 ## CONTRIBUTOR : Silverbullet069 (https://github.com/Silverbullet069/)
 ## LICENSE     : MIT License

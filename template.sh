@@ -3,7 +3,7 @@
 ## FILE        : #~NAME~#
 ## DESCRIPTION : General Bash script template
 ## CREATED     : #~TIME~#
-## TEMVER      : #~VERSION~#
+## TEMVER      : v2.1.0
 ## AUTHOR      : ralish (https://github.com/ralish/)
 ## CONTRIBUTOR : Silverbullet069 (https://github.com/Silverbullet069/)
 ## LICENSE     : MIT License
@@ -637,7 +637,6 @@ shopt -s nullglob globstar
 
 # Set IFS to preferred implementation
 # IFS=$' '
-
 
 # Invoke main with args if not sourced
 # Approach via: https://stackoverflow.com/a/28776166/8787985
