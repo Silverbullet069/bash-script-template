@@ -533,8 +533,6 @@ function parse_params() {
         esac
     done
 
-    # Make the flags read-only
-    # Check if flags array is empty and return error
     if [[ ${#flags[@]} -eq 0 ]]; then
         script_exit "No flags found in parse_params() function." 1
     fi
