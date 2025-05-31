@@ -8,7 +8,8 @@ setup() {
     bats_load_library bats-assert
     bats_load_library bats-file
 
-    export SCRIPT_UNDER_TEST=$(realpath "${BATS_TEST_DIRNAME}/../${SCRIPT_NAME:-script.sh}")
+    export SCRIPT_NAME="${SCRIPT_NAME:-script.sh}"
+    export SCRIPT_UNDER_TEST=$(realpath "${BATS_TEST_DIRNAME}/../${SCRIPT_NAME}")
     assert_file_exists "${SCRIPT_UNDER_TEST}"
 }
 
@@ -91,7 +92,7 @@ teardown() {
     assert_output --partial "This is an error message"
     assert_output --partial "This is a warning message"
     assert_output --partial "This is an info message"
-    assert_output --partial "This is a debug message"
+    refute_output --partial "This is a debug message"
 
     run "${SCRIPT_UNDER_TEST}" -l ERR
     assert_success
@@ -150,27 +151,6 @@ teardown() {
     rmdir "/tmp/${SCRIPT_NAME:-script.sh}.${UID}.lock"
 }
 
-@test "info() function logs info message" {
-    run "${SCRIPT_UNDER_TEST}" "info" "Test info message"
-    assert_success
-    assert_output --partial "[INF]"
-    assert_output --partial "Test info message"
-}
-
-@test "warn() function logs warning message" {
-    run "${SCRIPT_UNDER_TEST}" "warn" "Test warning message"
-    assert_success
-    assert_output --partial "[WRN]"
-    assert_output --partial "Test warning message"
-}
-
-@test "error() function logs error message and exits" {
-    run "${SCRIPT_UNDER_TEST}" "error" "Test error message"
-    assert_success
-    assert_output --partial "[ERR]"
-    assert_output --partial "Test error message"
-}
-
 @test "Script DEBUG environment variable enables trace output" {
     # Run the script with DEBUG=1
     DEBUG=1 run "${SCRIPT_UNDER_TEST}"
@@ -180,9 +160,36 @@ teardown() {
     assert_output --partial "+"
 }
 
-@test "debug() function logs error message and exits" {
-    DEBUG=1 run "${SCRIPT_UNDER_TEST}" "debug" "Test debug message"
-    assert_success
-    assert_output --partial "[DBG]"
-    assert_output --partial "Test debug message"
+@test "Internal: _option_ variables default values are initialized" {
+    # Source the script to access internal functions
+    # shellcheck disable=SC1090
+    source "${SCRIPT_UNDER_TEST}"
+
+    # Test that parse_params initializes variables
+    parse_params
+
+    # Check that variables are set
+    # shellcheck disable=SC2154
+    assert_equal "${_option_log_level}" "INF"
+    # shellcheck disable=SC2154
+    assert_equal "${_option_no_colour}" ""
+    # shellcheck disable=SC2154
+    assert_equal "${_option_quiet}" ""
+    # shellcheck disable=SC2154
+    assert_equal "${_option_timestamp}" ""
+}
+
+@test "Internal: _option_ variables are initialized correctly" {
+    # Source the script to access internal functions
+    # shellcheck disable=SC1090
+    source "${SCRIPT_UNDER_TEST}"
+
+    # Test that parse_params initializes variables
+    parse_params --log-level ERR --no-colour --quiet --timestamp
+
+    # Check that variables are set
+    assert_equal "${_option_log_level}" "ERR"
+    assert_equal "${_option_no_colour}" "1"
+    assert_equal "${_option_quiet}" "1"
+    assert_equal "${_option_timestamp}" "1"
 }

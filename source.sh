@@ -36,13 +36,13 @@ function _log() {
     shift 3
 
     # Check if current log level is lower than configured level
-    # If _flag_log_level hasn't been specified, print everything
-    if [[ ${LOG_LEVELS["${log_type}"]} -lt ${LOG_LEVELS["${_flag_log_level:-DBG}"]} ]]; then
+    # If _option_log_level hasn't been specified, print everything
+    if [[ ${LOG_LEVELS["${log_type}"]} -lt ${LOG_LEVELS["${_option_log_level:-DBG}"]} ]]; then
         return 0
     fi
 
     # If color is disabled
-    if [[ -n "${_flag_no_colour-}" ]]; then
+    if [[ -n "${_option_no_colour-}" ]]; then
         color="${ta_none}"
     fi
     # "${BASH_SOURCE[2]}" -> abs path to script that defined the function that called error() / warn() / info() / debug() functions
@@ -61,7 +61,7 @@ function _log() {
 
     # Handle timestamp if enabled
     local timestamp=""
-    if [[ -n "${_flag_timestamp-}" ]]; then
+    if [[ -n "${_option_timestamp-}" ]]; then
         timestamp="$(date +"[%Y-%m-%d %H:%M:%S %z]") "
     fi
 
@@ -106,7 +106,7 @@ function script_trap_err() {
     fi
 
     # Output debug data if in Quiet mode
-    if [[ -n ${_flag_quiet-} ]]; then
+    if [[ -n ${_option_quiet-} ]]; then
         # Restore original file output descriptors
         if [[ -n ${script_output-} ]]; then
             exec 1>&3 2>&4
@@ -141,7 +141,7 @@ function script_trap_exit() {
     cd "${orig_cwd}"
 
     # Remove Quiet mode script log
-    if [[ -n "${_flag_quiet-}" && -n "${script_output-}" ]]; then
+    if [[ -n "${_option_quiet-}" && -n "${script_output-}" ]]; then
         rm -v "${script_output}"
     fi
 
@@ -196,7 +196,7 @@ function script_exit() {
 # shellcheck disable=SC2034,SC2155
 function colour_init() {
 
-    if [[ -z "${_flag_no_colour-}" ]]; then
+    if [[ -z "${_option_no_colour-}" ]]; then
         # Text attributes
         readonly ta_bold="$(tput bold 2> /dev/null || true)"
         printf '%b' "${ta_none}"
@@ -301,7 +301,7 @@ function script_init() {
 # OUTS: $script_output: Path to the file stdout & stderr was redirected to
 # RETS: None
 function quiet_init() {
-    if [[ -n "${_flag_quiet-}" ]]; then
+    if [[ -n "${_option_quiet-}" ]]; then
         # Redirect all output to a temporary file
         # shellcheck disable=SC2312
         local -r script_output="$(mktemp --tmpdir "${script_name}".XXXXX)"

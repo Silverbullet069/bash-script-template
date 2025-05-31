@@ -19,28 +19,52 @@ function parse_params() {
     # Extract options dynamically from parse_params function
 
     # shellcheck disable=SC2016,SC2312
-    local -r parse_params_content=$(declare -f parse_params | sed -En '/[[:space:]]+case "\$\{param\}" in/,/[[:space:]]+esac;/p' | sed '1d;$d')
+    local script_file="${BASH_SOURCE[0]}"
+    local in_case_block=false
+    local -A options=() # associative array
+    declare -g help_options=() # indexed array
 
-    # debug "${parse_params_content}"
-
-    if [[ -z "${parse_params_content-}" ]]; then
-        script_exit "Can't extract content from parse_params() function. Check the regex." 1
-    fi
-
-    local flags=()
     while IFS= read -r line; do
-        # NOTE: Extract long option only and convert hyphens to underscores
-        if [[ $line =~ ^[[:space:]]*-([a-z])\ \|\ --([a-z-]+)\)$ ]]; then
-            flags+=("${BASH_REMATCH[2]//-/_}")
-        elif [[ $line =~ ^[[:space:]]*--([a-z-]+)\)$ ]]; then
-            flags+=("${BASH_REMATCH[1]//-/_}")
+        if [[ $line =~ case.*param.*in ]]; then
+            in_case_block=true
+            continue
+        elif [[ $line =~ esac ]]; then
+            in_case_block=false
+            continue
         fi
-    done <<< "${parse_params_content}"
 
-    # Check if flags array is empty
-    if [[ ${#flags[@]} -eq 0 ]]; then
-        script_exit "No valid flags found in parse_params() function. Check the function implementation." 1
-    fi
+        if [[ $in_case_block == true ]]; then
+
+            if [[ $line =~ ^[[:space:]]*-([a-z])[[:space:]]\|[[:space:]]--([a-z-]+)\)$ ]]; then
+                option_name="${BASH_REMATCH[2]//-/_}"
+                option_help="-${BASH_REMATCH[1]}, --${BASH_REMATCH[2]}"
+                options["${option_name}"]=  # empty
+
+            elif [[ $line =~ ^[[:space:]]*--([a-z-]+)\)$ ]]; then
+                option_name="${BASH_REMATCH[1]//-/_}"
+                option_help="    --${BASH_REMATCH[1]}"
+                options["${option_name}"]=  # empty
+
+            elif [[ $line =~ ^[[:space:]]*###[[:space:]]*(.*)$ ]]; then
+                help_options+=("$(printf "    %-28s %s\n" "${option_help}" "${BASH_REMATCH[1]}")")
+                option_help= # reset
+
+                if [[ $line =~ ^[[:space:]]*###.*Default:[[:space:]]*(.*)$ ]]; then
+                    options["${option_name}"]="${BASH_REMATCH[1]}"
+                fi
+            fi
+        fi
+    done < "$script_file"
+
+    # Check if options array is empty
+    # shellcheck disable=SC2015
+    [[ "${#options[@]}" -eq 0 ]] && script_exit "No valid flags found in parse_params() function. Check the function implementation." 1 || true
+
+    # Initialize all flags with empty value
+    for option in "${!options[@]}"; do
+        # NOTE: use "_option_*" as prefix
+        declare -g "_option_${option}=${options[${option}]}"
+    done
 
     # parse provided arguments
     while [[ $# -gt 0 ]]; do
@@ -51,38 +75,41 @@ function parse_params() {
             # ...
 
             # Built-in options
-            # NOTE: Write the short description of your options by starting
-            # NOTE: a comment with triple sharps ###
-            # NOTE: You can write multiple comment lines
+            # NOTE: ### comment will be displayed as short description for options in --help output
             -l | --log-level)
-                ### Specify log level. Valid values: DBG, INF, WRN, ERR
-                ### Add DEBUG=1 to turn on Bash debug mode
-                _flag_log_level="${1}"
+                ### Specify log level. Add DEBUG=1 to turn on Bash debug mode.
+                ### Valid values: DBG, INF, WRN, ERR. Default: INF
+
+                _option_log_level="${1}"
                 shift
-                if [[ -z "${LOG_LEVELS[$_flag_log_level]}" ]]; then
-                    script_exit "Invalid log level: ${_flag_log_level}. Choose 1 of the following: ${LOG_LEVELS[*]}" 2
+                if [[ -z "${LOG_LEVELS[${_option_log_level}]}" ]]; then
+                    script_exit "Invalid log level: ${_option_log_level}. Choose 1 of the following: ${LOG_LEVELS[*]}" 2
                 fi
                 ;;
             -n | --no-colour)
                 ### Disables colour output
-                _flag_no_colour=true
+
+                _option_no_colour=1
                 ;;
             -q | --quiet)
                 ### Run silently unless an error is encountered
-                _flag_quiet=true
+
+                _option_quiet=1
                 ;;
             -t | --timestamp)
                 ### Enables timestamp output
-                _flag_timestamp=true
+
+                _option_timestamp=1
                 ;;
             -h | --help)
                 ### Displays this help and exit
+
                 script_usage
                 exit 0
                 ;;
             *)
                 # internal function calling
-                if declare -F "${param}" &> /dev/null && [[ "${_flag_log_level:-DBG}" == "DBG" ]]; then
+                if declare -F "${param}" &> /dev/null && [[ -n "${DEBUG-}" ]]; then
                     "${param}" "$@"
                     exit 0
                 fi
@@ -91,19 +118,13 @@ function parse_params() {
         esac
     done
 
-    # Make the flags read-only
-    # Check if flags array is empty and return error
-    if [[ ${#flags[@]} -eq 0 ]]; then
-        script_exit "No flags found in parse_params() function." 1
-    fi
+    # Check if options array is empty
+    # shellcheck disable=SC2015
+    [[ ${#options[@]} -eq 0 ]] && script_exit "No options found in parse_params() function." 1 || true
 
-    # Make the flags read-only and check for empty flags
-    for flag in "${flags[@]}"; do
-        # Check if flag is empty and return error
-        if [[ -z "${flag}" ]]; then
-            script_exit "Empty flag found in parse_params() function." 1
-        fi
-        readonly "_flag_${flag}"
+    # Make the options read-only
+    for option in "${options[@]}"; do
+        readonly "_option_${option}"
     done
 }
 
@@ -119,33 +140,8 @@ Usage: #~NAME~# [OPTIONS] ...
 Add short description and examples here...
 
 Options:
+$(printf '%s\n' "${help_options[@]-}")
 EOF
-    # Read the source file and extract comments
-    local script_file="${BASH_SOURCE[0]}"
-    local in_case_block=false
-    local current_option=""
-
-    while IFS= read -r line; do
-        if [[ $line =~ case.*param.*in ]]; then
-            in_case_block=true
-            continue
-        elif [[ $line =~ esac ]]; then
-            in_case_block=false
-            continue
-        fi
-
-        if [[ $in_case_block == true ]]; then
-            # Match option patterns
-            if [[ $line =~ ^[[:space:]]*(-[a-z])\ \|\ (--[a-z-]+)\) ]]; then
-                current_option="${BASH_REMATCH[1]}, ${BASH_REMATCH[2]}"
-            elif [[ $line =~ ^[[:space:]]*(--[a-z-]+)\) ]]; then
-                current_option="    ${BASH_REMATCH[1]}"
-            elif [[ $line =~ ^[[:space:]]*###[[:space:]](.*) ]]; then
-                printf "    %-28s %s\n" "$current_option" "${BASH_REMATCH[1]}"
-                current_option=""
-            fi
-        fi
-    done < "$script_file"
 }
 
 # DESC: Main control flow
@@ -174,7 +170,7 @@ function main() {
 # ============================================================================ #
 
 # Enable xtrace if the DEBUG environment variable is set
-if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
+if [[ -n ${DEBUG-} ]]; then
     set -o xtrace # Trace the execution of the script (debug)
 fi
 
