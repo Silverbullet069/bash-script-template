@@ -55,6 +55,6 @@ jobs:
           --target main \
           --generate-notes \
           --latest \
-          source.sh script.sh template.sh
+          source.sh script.sh template.sh clone_bash_template.fish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

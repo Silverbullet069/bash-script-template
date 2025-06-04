@@ -4,6 +4,7 @@
 ## DESCRIPTION : General Bash script template
 ## CREATED     : #~TIME~#
 ## TEMVER      : v2.1.1
+## TEMURL      : https://github.com/Silverbullet069/bash-script-template
 ## AUTHOR      : ralish (https://github.com/ralish/)
 ## CONTRIBUTOR : Silverbullet069 (https://github.com/Silverbullet069/)
 ## LICENSE     : MIT License
@@ -21,7 +22,7 @@ function parse_params() {
     # shellcheck disable=SC2016,SC2312
     local script_file="${BASH_SOURCE[0]}"
     local in_case_block=false
-    local -A options=() # associative array
+    local -A options=()        # associative array
     declare -g help_options=() # indexed array
 
     while IFS= read -r line; do
@@ -38,12 +39,12 @@ function parse_params() {
             if [[ $line =~ ^[[:space:]]*-([a-z])[[:space:]]\|[[:space:]]--([a-z-]+)\)$ ]]; then
                 option_name="${BASH_REMATCH[2]//-/_}"
                 option_help="-${BASH_REMATCH[1]}, --${BASH_REMATCH[2]}"
-                options["${option_name}"]=  # empty
+                options["${option_name}"]= # empty
 
             elif [[ $line =~ ^[[:space:]]*--([a-z-]+)\)$ ]]; then
                 option_name="${BASH_REMATCH[1]//-/_}"
                 option_help="    --${BASH_REMATCH[1]}"
-                options["${option_name}"]=  # empty
+                options["${option_name}"]= # empty
 
             elif [[ $line =~ ^[[:space:]]*###[[:space:]]*(.*)$ ]]; then
                 help_options+=("$(printf "    %-28s %s\n" "${option_help}" "${BASH_REMATCH[1]}")")
@@ -54,7 +55,7 @@ function parse_params() {
                 fi
             fi
         fi
-    done < "$script_file"
+    done <"$script_file"
 
     # Check if options array is empty
     # shellcheck disable=SC2015
@@ -71,50 +72,50 @@ function parse_params() {
         local param="${1}"
         shift
         case "${param}" in
-            # Add your options here
-            # ...
+        # Add your options here
+        # ...
 
-            # Built-in options
-            # NOTE: ### comment will be displayed as short description for options in --help output
-            -l | --log-level)
-                ### Specify log level. Add DEBUG=1 to turn on Bash debug mode.
-                ### Valid values: DBG, INF, WRN, ERR. Default: INF
+        # Built-in options
+        # NOTE: ### comment will be displayed as short description for options in --help output
+        -l | --log-level)
+            ### Specify log level. Add DEBUG=1 to turn on Bash debug mode.
+            ### Valid values: DBG, INF, WRN, ERR. Default: INF
 
-                _option_log_level="${1}"
-                shift
-                if [[ -z "${LOG_LEVELS[${_option_log_level}]}" ]]; then
-                    script_exit "Invalid log level: ${_option_log_level}. Choose 1 of the following: ${LOG_LEVELS[*]}" 2
-                fi
-                ;;
-            -n | --no-colour)
-                ### Disables colour output
+            _option_log_level="${1}"
+            shift
+            if [[ -z "${LOG_LEVELS[${_option_log_level}]}" ]]; then
+                script_exit "Invalid log level: ${_option_log_level}. Choose 1 of the following: ${LOG_LEVELS[*]}" 2
+            fi
+            ;;
+        -n | --no-colour)
+            ### Disables colour output
 
-                _option_no_colour=1
-                ;;
-            -q | --quiet)
-                ### Run silently unless an error is encountered
+            _option_no_colour=1
+            ;;
+        -q | --quiet)
+            ### Run silently unless an error is encountered
 
-                _option_quiet=1
-                ;;
-            -t | --timestamp)
-                ### Enables timestamp output
+            _option_quiet=1
+            ;;
+        -t | --timestamp)
+            ### Enables timestamp output
 
-                _option_timestamp=1
-                ;;
-            -h | --help)
-                ### Displays this help and exit
+            _option_timestamp=1
+            ;;
+        -h | --help)
+            ### Displays this help and exit
 
-                script_usage
+            script_usage
+            exit 0
+            ;;
+        *)
+            # internal function calling
+            if declare -F "${param}" &>/dev/null && [[ -n "${DEBUG-}" ]]; then
+                "${param}" "$@"
                 exit 0
-                ;;
-            *)
-                # internal function calling
-                if declare -F "${param}" &> /dev/null && [[ -n "${DEBUG-}" ]]; then
-                    "${param}" "$@"
-                    exit 0
-                fi
-                script_exit "Invalid parameter was provided: ${param}" 1
-                ;;
+            fi
+            script_exit "Invalid parameter was provided: ${param}" 1
+            ;;
         esac
     done
 
@@ -123,7 +124,7 @@ function parse_params() {
     [[ ${#options[@]} -eq 0 ]] && script_exit "No options found in parse_params() function." 1 || true
 
     # Make the options read-only
-    for option in "${options[@]}"; do
+    for option in "${!options[@]}"; do
         readonly "_option_${option}"
     done
 }
@@ -133,7 +134,7 @@ function parse_params() {
 # OUTS: None
 # RETS: None
 function script_usage() {
-    cat << EOF
+    cat <<EOF
 
 Usage: #~NAME~# [OPTIONS] ...
 
@@ -176,7 +177,7 @@ fi
 
 # Only enable these shell behaviours if we're not being sourced
 # Approach via: https://stackoverflow.com/a/28776166/8787985
-if ! (return 0 2> /dev/null); then
+if ! (return 0 2>/dev/null); then
     # A better class of script...
     set -o errexit  # Exit on most errors (see the manual)
     set -o nounset  # Disallow expansion of unset variables
@@ -198,7 +199,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
 
 # Invoke main with args if not sourced
 # Approach via: https://stackoverflow.com/a/28776166/8787985
-if ! (return 0 2> /dev/null); then
+if ! (return 0 2>/dev/null); then
     main "$@"
 fi
 

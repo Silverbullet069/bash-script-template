@@ -4,6 +4,7 @@
 ## DESCRIPTION : Build script that merge source.sh and script.sh into one
 ## CREATED     : #~TIME~#
 ## TEMVER      : v2.1.1
+## TEMURL      : https://github.com/Silverbullet069/bash-script-template
 ## AUTHOR      : ralish (https://github.com/ralish/)
 ## CONTRIBUTOR : Silverbullet069 (https://github.com/Silverbullet069/)
 ## LICENSE     : MIT License

@@ -4,6 +4,7 @@
 ## DESCRIPTION : A sourced script that contains reusable functions
 ## CREATED     : #~TIME~#
 ## TEMVER      : v2.1.1
+## TEMURL      : https://github.com/Silverbullet069/bash-script-template
 ## AUTHOR      : ralish (https://github.com/ralish/)
 ## CONTRIBUTOR : Silverbullet069 (https://github.com/Silverbullet069/)
 ## LICENSE     : MIT License
@@ -12,9 +13,9 @@
 
 # NOTE: Important to set first as we use it in _log() and exit handler
 # shellcheck disable=SC2155
-readonly ta_none="$(tput sgr0 2> /dev/null || true)"
+readonly ta_none="$(tput sgr0 2>/dev/null || true)"
 
-# Log levels associative array wiht ascending severity
+# Log levels associative array with ascending severity
 declare -rA LOG_LEVELS=(["DBG"]=0 ["INF"]=1 ["WRN"]=2 ["ERR"]=3)
 
 # DESC: Print message with printf-like formatting and appropriate styling
@@ -75,15 +76,15 @@ function _log() {
     fi
 
     printf "%s%s[%s]: %b[%-3s]%b %s\n" \
-            "${timestamp}" "${caller}" "${lineno}" \
-            "${color}" "${log_type}" "${ta_none}" \
-            "${log_message}"
+        "${timestamp}" "${caller}" "${lineno}" \
+        "${color}" "${log_type}" "${ta_none}" \
+        "${log_message}"
 }
 
 # shellcheck disable=SC2015,SC2310
 function debug() { _log "${ta_none}" "DBG" "$@"; }
-function info()  { _log "${ta_bold:-$ta_none}${fg_blue:-$ta_none}" "INF" "$@"; }
-function warn()  { _log "${ta_bold:-$ta_none}${fg_yellow:-$ta_none}" "WRN" "$@"; }
+function info() { _log "${ta_bold:-$ta_none}${fg_blue:-$ta_none}" "INF" "$@"; }
+function warn() { _log "${ta_bold:-$ta_none}${fg_yellow:-$ta_none}" "WRN" "$@"; }
 function error() { _log "${ta_bold:-$ta_none}${fg_red:-$ta_none}" "ERR" "$@"; }
 
 # DESC: Handler for unexpected errors
@@ -142,7 +143,8 @@ function script_trap_exit() {
 
     # Remove Quiet mode script log
     if [[ -n "${_option_quiet-}" && -n "${script_output-}" ]]; then
-        rm -v "${script_output}"
+        # silent is OK for cleanup
+        rm -f "${script_output}"
     fi
 
     # Remove script execution lock
@@ -198,51 +200,33 @@ function colour_init() {
 
     if [[ -z "${_option_no_colour-}" ]]; then
         # Text attributes
-        readonly ta_bold="$(tput bold 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
-        readonly ta_uscore="$(tput smul 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
-        readonly ta_blink="$(tput blink 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
-        readonly ta_reverse="$(tput rev 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
-        readonly ta_conceal="$(tput invis 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
+        readonly ta_bold="$(tput bold 2>/dev/null || true)"
+        readonly ta_uscore="$(tput smul 2>/dev/null || true)"
+        readonly ta_blink="$(tput blink 2>/dev/null || true)"
+        readonly ta_reverse="$(tput rev 2>/dev/null || true)"
+        readonly ta_conceal="$(tput invis 2>/dev/null || true)"
 
         # Foreground codes
-        readonly fg_black="$(tput setaf 0 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
-        readonly fg_blue="$(tput setaf 4 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
-        readonly fg_cyan="$(tput setaf 6 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
-        readonly fg_green="$(tput setaf 2 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
-        readonly fg_magenta="$(tput setaf 5 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
-        readonly fg_red="$(tput setaf 1 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
-        readonly fg_white="$(tput setaf 7 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
-        readonly fg_yellow="$(tput setaf 3 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
+        readonly fg_black="$(tput setaf 0 2>/dev/null || true)"
+        readonly fg_blue="$(tput setaf 4 2>/dev/null || true)"
+        readonly fg_cyan="$(tput setaf 6 2>/dev/null || true)"
+        readonly fg_green="$(tput setaf 2 2>/dev/null || true)"
+        readonly fg_magenta="$(tput setaf 5 2>/dev/null || true)"
+        readonly fg_red="$(tput setaf 1 2>/dev/null || true)"
+        readonly fg_white="$(tput setaf 7 2>/dev/null || true)"
+        readonly fg_yellow="$(tput setaf 3 2>/dev/null || true)"
 
         # Background codes
-        readonly bg_black="$(tput setab 0 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
-        readonly bg_blue="$(tput setab 4 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
-        readonly bg_cyan="$(tput setab 6 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
-        readonly bg_green="$(tput setab 2 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
-        readonly bg_magenta="$(tput setab 5 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
-        readonly bg_red="$(tput setab 1 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
-        readonly bg_white="$(tput setab 7 2> /dev/null || true)"
-        printf '%b' "${ta_none}"
-        readonly bg_yellow="$(tput setab 3 2> /dev/null || true)"
+        readonly bg_black="$(tput setab 0 2>/dev/null || true)"
+        readonly bg_blue="$(tput setab 4 2>/dev/null || true)"
+        readonly bg_cyan="$(tput setab 6 2>/dev/null || true)"
+        readonly bg_green="$(tput setab 2 2>/dev/null || true)"
+        readonly bg_magenta="$(tput setab 5 2>/dev/null || true)"
+        readonly bg_red="$(tput setab 1 2>/dev/null || true)"
+        readonly bg_white="$(tput setab 7 2>/dev/null || true)"
+        readonly bg_yellow="$(tput setab 3 2>/dev/null || true)"
+
+        # Reset terminal once at the end
         printf '%b' "${ta_none}"
     else
         # Text attributes
@@ -304,8 +288,8 @@ function quiet_init() {
     if [[ -n "${_option_quiet-}" ]]; then
         # Redirect all output to a temporary file
         # shellcheck disable=SC2312
-        local -r script_output="$(mktemp --tmpdir "${script_name}".XXXXX)"
-        exec 3>&1 4>&2 1> "${script_output}" 2>&1
+        script_output="$(mktemp --tmpdir "${script_name}".XXXXX)"
+        exec 3>&1 4>&2 1>"${script_output}" 2>&1
     fi
 }
 
@@ -327,7 +311,7 @@ function lock_init() {
         script_exit 'Missing or invalid argument to lock_init()!' 2
     fi
 
-    if mkdir "${lock_dir}" 2> /dev/null; then
+    if mkdir "${lock_dir}" 2>/dev/null; then
         readonly script_lock="${lock_dir}"
         info "Acquired script lock: ${script_lock}"
     else
@@ -353,12 +337,12 @@ function build_path() {
 
     local new_path=
     while [[ -n "${temp_path}" ]]; do
-        path_entry="${temp_path%%:*}"
+        local path_entry="${temp_path%%:*}"
         case "${new_path}:" in
-            *:"${path_entry}":*) ;;
-            *)
-                new_path="${new_path}:${path_entry}"
-                ;;
+        *:"${path_entry}":*) ;;
+        *)
+            new_path="${new_path}:${path_entry}"
+            ;;
         esac
         temp_path="${temp_path#*:}"
     done
@@ -378,7 +362,7 @@ function check_binary() {
         script_exit 'Missing required argument to check_binary()!' 2
     fi
 
-    if ! command -v "${1}" > /dev/null 2>&1; then
+    if ! command -v "${1}" >/dev/null 2>&1; then
         if [[ -n "${2-}" ]]; then
             script_exit "Missing dependency: Couldn't locate ${1}." 1
         else
