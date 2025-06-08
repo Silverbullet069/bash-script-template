@@ -3,7 +3,7 @@
 ## FILE        : #~NAME~#
 ## DESCRIPTION : General Bash script template
 ## CREATED     : #~TIME~#
-## TEMVER      : v2.1.1
+## TEMVER      : v2.1.2
 ## TEMURL      : https://github.com/Silverbullet069/bash-script-template
 ## AUTHOR      : ralish (https://github.com/ralish/)
 ## CONTRIBUTOR : Silverbullet069 (https://github.com/Silverbullet069/)
@@ -61,7 +61,7 @@ function parse_params() {
     # shellcheck disable=SC2015
     [[ "${#options[@]}" -eq 0 ]] && script_exit "No valid flags found in parse_params() function. Check the function implementation." 1 || true
 
-    # Initialize all flags with empty value
+    # Initialize all flags with default value
     for option in "${!options[@]}"; do
         # NOTE: use "_option_*" as prefix
         declare -g "_option_${option}=${options[${option}]}"
