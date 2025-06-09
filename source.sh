@@ -3,7 +3,7 @@
 ## FILE        : #~NAME~#
 ## DESCRIPTION : A sourced script that contains reusable functions
 ## CREATED     : #~TIME~#
-## TEMVER      : v2.1.2
+## TEMVER      : v2.1.3
 ## TEMURL      : https://github.com/Silverbullet069/bash-script-template
 ## AUTHOR      : ralish (https://github.com/ralish/)
 ## CONTRIBUTOR : Silverbullet069 (https://github.com/Silverbullet069/)
