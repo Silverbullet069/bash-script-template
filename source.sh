@@ -431,5 +431,3 @@ function run_as_root() {
         script_exit "Unable to run requested command as root: $*" 1
     fi
 }
-
-# vim: syntax=sh cc=80 tw=79 ts=4 sw=4 sts=4 et sr

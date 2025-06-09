@@ -202,5 +202,3 @@ source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
 if ! (return 0 2>/dev/null); then
     main "$@"
 fi
-
-# vim: syntax=sh cc=80 tw=79 ts=4 sw=4 sts=4 et sr

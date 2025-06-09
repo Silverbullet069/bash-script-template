@@ -432,8 +432,6 @@ function run_as_root() {
     fi
 }
 
-# vim: syntax=sh cc=80 tw=79 ts=4 sw=4 sts=4 et sr
-
 # ============================================================================ #
 
 # DESC: Parameter parser
@@ -486,7 +484,7 @@ function parse_params() {
     # shellcheck disable=SC2015
     [[ "${#options[@]}" -eq 0 ]] && script_exit "No valid flags found in parse_params() function. Check the function implementation." 1 || true
 
-    # Initialize all flags with empty value
+    # Initialize all flags with default value
     for option in "${!options[@]}"; do
         # NOTE: use "_option_*" as prefix
         declare -g "_option_${option}=${options[${option}]}"
@@ -618,11 +616,8 @@ shopt -s nullglob globstar
 # Set IFS to preferred implementation
 # IFS=$' '
 
-
 # Invoke main with args if not sourced
 # Approach via: https://stackoverflow.com/a/28776166/8787985
 if ! (return 0 2>/dev/null); then
     main "$@"
 fi
-
-# vim: syntax=sh cc=80 tw=79 ts=4 sw=4 sts=4 et sr
