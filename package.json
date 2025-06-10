@@ -8,7 +8,7 @@
     "scripts": {
         "script": "./script.sh",
         "template": "./template.sh",
-        "test": "npx bats tests/test.sh"
+        "test": "npx bats tests/test.sh && SCRIPT_NAME=template.sh npx bats tests/test.sh"
     },
     "repository": {
         "type": "git",

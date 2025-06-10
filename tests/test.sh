@@ -180,6 +180,7 @@ teardown() {
 }
 
 @test "Internal: _option_ variables are initialized correctly" {
+
     # Source the script to access internal functions
     # shellcheck disable=SC1090
     source "${SCRIPT_UNDER_TEST}"
@@ -192,4 +193,22 @@ teardown() {
     assert_equal "${_option_no_colour}" "1"
     assert_equal "${_option_quiet}" "1"
     assert_equal "${_option_timestamp}" "1"
+}
+
+@test "Internal: _option_ variables are read-only" {
+    # Source the script to access internal functions
+    # shellcheck disable=SC1090
+
+    # Try to modify read-only variables and capture stderr
+    run bash -c 'source "${SCRIPT_UNDER_TEST}"; parse_params; _option_log_level="ERR" 2>&1'
+    assert_output --partial "_option_log_level: readonly variable"
+
+    run bash -c 'source "${SCRIPT_UNDER_TEST}"; parse_params; _option_no_colour=1 2>&1'
+    assert_output --partial "_option_no_colour: readonly variable"
+
+    run bash -c 'source "${SCRIPT_UNDER_TEST}"; parse_params; _option_quiet=1 2>&1'
+    assert_output --partial "_option_quiet: readonly variable"
+
+    run bash -c 'source "${SCRIPT_UNDER_TEST}"; parse_params; _option_timestamp=1 2>&1'
+    assert_output --partial "_option_timestamp: readonly variable"
 }
