@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 ## FILE        : @NAME@
+## VERSION     : v1.0.0
 ## DESCRIPTION : General Bash script template
-## CREATED     : @TIME@
-## UPDATED     : @TIME@
-## VERSION     : v0.0.1
+## AUTHOR      : Silverbullet069
+## REPOSITORY  : @REPO@
 ## LICENSE     : MIT License
 
-## TEMURL      : https://github.com/Silverbullet069/bash-script-template/releases/tag/v2.1.3
+## TEMREPO     : https://github.com/Silverbullet069/bash-script-template
 ## TEMVER      : v2.1.4
 ## TEMLIC      : MIT License
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Pre-commit hook to update version numbers in shell scripts
-# This hook extracts version from package.json and updates TEMVER lines in shell scripts
+# This hook extracts version from package.json and updates VERSION lines in shell scripts
 
 set -e
 
@@ -27,25 +27,32 @@ fi
 
 echo "Updating version numbers to v$VERSION in shell scripts..."
 
-# Files to update
-FILES=("script.sh" "source.sh" "build.sh" "template.sh")
+# Files that use TEMVER
+TEMVER_FILES=("script.sh" "template.sh")
+
+# Files that use VERSION
+VERSION_FILES=("source.sh" "build.sh" "clone_bash_template.sh")
 
 # Track if any files were modified
 MODIFIED=false
 
-for file in "${FILES[@]}"; do
+# Function to update version in file
+update_version() {
+    local file="$1"
+    local version_field="$2"
+
     if [[ -f "$file" ]]; then
-        # Check if file contains TEMVER line and needs updating
-        if grep -q "## TEMVER    [[:space:]]*:[[:space:]]*v[0-9]\+\.[0-9]\+\.[0-9]\+" "$file"; then
+        # Check if file contains version line and needs updating
+        if grep -q "#+[[:space:]]\+${version_field}[[:space:]]*:[[:space:]]*v[0-9]\+\.[0-9]\+\.[0-9]\+" "$file"; then
             # Create backup
             cp "$file" "$file.bak"
 
-            # Replace version
-            sed -i "s/## TEMVER    [[:space:]]*:[[:space:]]*v[0-9]\+\.[0-9]\+\.[0-9]\+/## TEMVER      : v$VERSION/g" "$file"
+            # Replace version for specified field
+            sed -i "s/^\([[:space:]]*#[#*+-]*[[:space:]]*${version_field}[[:space:]]*:[[:space:]]*\)v[0-9]\+\.[0-9]\+\.[0-9]\+/\1v$VERSION/g" "$file"
 
             # Check if file was actually modified
             if ! cmp -s "$file" "$file.bak"; then
-                echo "Updated version in $file"
+                echo "Updated $version_field in $file"
                 git add "$file"
                 MODIFIED=true
             fi
@@ -54,6 +61,16 @@ for file in "${FILES[@]}"; do
             rm "$file.bak"
         fi
     fi
+}
+
+# Update TEMVER files
+for file in "${TEMVER_FILES[@]}"; do
+    update_version "$file" "TEMVER"
+done
+
+# Update VERSION files
+for file in "${VERSION_FILES[@]}"; do
+    update_version "$file" "VERSION"
 done
 
 if [[ "$MODIFIED" == true ]]; then

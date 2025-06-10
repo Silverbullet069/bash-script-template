@@ -2,10 +2,10 @@ name: Create Release
 
 on:
   push:
-    branches: [main]
+    branches: [$default-branch]
     tags: ["v*"]
   pull_request:
-    branches: [main]
+    branches: [$default-branch]
     types: [closed]
   workflow_dispatch:
 
