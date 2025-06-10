@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
 
-## FILE        : @NAME@
+## FILE        : source.sh
+## VERSION     : v2.1.4
 ## DESCRIPTION : A sourced script with reusable functions.
-## CREATED     : @TIME@
-## UPDATED     : @TIME@
-## VERSION     : v0.0.1
+## AUTHOR      : Silverbullet069
+## REPOSITORY  : https://github.com/Silverbullet069/bash-script-template
 ## LICENSE     : MIT License
-
-## TEMURL      : https://github.com/Silverbullet069/bash-script-template/releases/tag/v2.1.3
-## TEMVER      : v2.1.4
-## TEMLIC      : MIT License
 
 # ============================================================================ #
 

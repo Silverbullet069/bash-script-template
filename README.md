@@ -1,90 +1,188 @@
-# bash-script-template
+# Bash Script Template
 
-[![License: MIT](https://img.shields.io/github/license/Silverbullet069/bash-script-template)](https://opensource.org/licenses/MIT) <!-- https://shields.io/badges/git-hub-license -->
-[![Tests](https://github.com/Silverbullet069/bash-script-template/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Silverbullet069/bash-script-template/actions/workflows/test.yml) <!-- https://shields.io/badges/git-hub-actions-workflow-status -->
-[![Release](https://img.shields.io/github/v/release/Silverbullet069/bash-script-template)](https://github.com/Silverbullet069/bash-script-template/releases/latest)<!-- https://shields.io/badges/git-hub-release -->
-[![Changelog](https://img.shields.io/badge/changelog-Keep%20a%20Changelog-%23E05735)](https://github.com/Silverbullet069/bash-script-template/releases) <!-- https://shields.io/badges/static-badge -->
+[![Tests](https://github.com/Silverbullet069/bash-script-template/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Silverbullet069/bash-script-template/actions/workflows/test.yml)
+[![Release](https://img.shields.io/github/v/release/Silverbullet069/bash-script-template?include_prereleases&label=version)](https://github.com/Silverbullet069/bash-script-template/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/Silverbullet069/bash-script-template)](https://opensource.org/licenses/MIT)
 
-A _Bash_ scripting template incorporating best practices & several useful functions.
+A production-ready Bash scripting template with best practices, robust error handling, and useful utilities built-in.
 
--   [Motivation](#motivation)
--   [Files](#files)
--   [Usage](#usage)
--   [Controversies](#controversies)
--   [License](#license)
+## Table of Contents
 
-## Motivation
+- [Features](#features)
+- [Quick Start](#quick-start)
+  - [Option 1: Self-contained template](#option-1-self-contained-template)
+  - [Option 2: Modular approach](#option-2-modular-approach)
+- [Architecture](#architecture)
+- [Usage](#usage)
+  - [Adding Custom Options](#adding-custom-options)
+  - [Built-in Functions](#built-in-functions)
+  - [Example Script](#example-script)
+- [Design Decisions](#design-decisions)
+  - [errexit (set -e)](#errexit-set--e)
+  - [nounset (set -u)](#nounset-set--u)
+- [License](#license)
 
-I write Bash scripts frequently and realised that I often copied a recent script whenever I started writing a new one. This provided me with a basic scaffold to work on and several useful helper functions I'd otherwise likely end up duplicating.
+## Features
 
-Rather than continually copying old scripts and flensing the irrelevant code, I'm publishing a more formalised template to ease the process for my own usage and anyone else who may find it helpful. Suggestions for improvements are most welcome.
+- **Robust error handling** with comprehensive trap handlers
+- **Automatic parameters parsing** with help generation
+- **Colored logging** with configurable levels (DBG/INF/WRN/ERR)
+- **Script locking** to prevent concurrent execution
+- **Quiet mode** for silent operation
+- **Built-in utilities** for common operations
+- **Flexible modes** given 3 scripting strategy: full template, lite template and 1 source - N scripts.
 
-## Files
+## Quick Start
 
-| File            | Description                                                                                     |
-| --------------- | ----------------------------------------------------------------------------------------------- |
-| **template.sh** | A fully self-contained script which combines `source.sh` & `script.sh`                          |
-| **source.sh**   | Designed for sourcing into scripts; contains only those functions unlikely to need modification |
-| **script.sh**   | Sample script which sources in `source.sh` and contains those functions likely to be modified   |
-| **build.sh**    | Generates `template.sh` by combining `source.sh` & `template.sh` (just a helper script)         |
+Clone the repository:
+
+```sh
+git clone --depth=1 https://github.com/Silverbullet069/bash-script-template.git
+cd bash-script-template
+```
+
+By default, downloaded script files aren't executable. Change file permission:
+
+```sh
+chmod +x script.sh template.sh template_lite.sh clone_bash_template.sh
+```
+
+Create a symlink out of `clone_bash_template.sh`:
+
+> [!IMPORTANT]
+>
+> Make sure `~/.local/bin` is inside your `PATH` environment variable.
+
+```sh
+ln -s "$(PWD)/clone_bash_template.sh" ~/.local/bin/clone-bash-template
+```
+
+Choose your preferred approach:
+
+**Option 1: Self-contained template:** for simple, standalone scripts
+
+```sh
+# Full-featured template (recommended for most cases)
+clone-bash-template -o path/to/your/script.sh
+
+# Lightweight template (minimal features)
+clone-bash-template -m lite -o path/to/your/script.sh
+```
+
+**Option 2: Modular approach:** for projects with multiple scripts sharing common utilities
+
+```sh
+# Creates both source.sh (library) and script.sh (template)
+clone-bash-template -m source+script -o path/to/your/project/
+```
+
+> [!TIP]
+> Use `.bash` extension if preferred - both `.sh` and `.bash` are supported.
+
+> [!WARNING]
+>
+> Ensure version compatibility between old/new `source.sh` and old/new `script.sh` when updating.
+
+## Architecture
+
+| File | Purpose |
+|------|---------|
+| `template.sh` | Self-contained script combining all functionality |
+| `template_lite.sh` | A small, simple yet reliable template script |
+| `source.sh` | Reusable library functions (rarely modified) |
+| `script.sh` | Main script template (customize this) |
+| `build.sh` | Merges `source.sh` + `script.sh` → `template.sh` |
+| `clone_bash_template.sh` | Helper to clone template with placeholder replacement |
 
 ## Usage
 
-Being a Bash script you're free to _slice-and-dice_ the source as you see fit.
+### Adding Custom Options
 
-The following steps outline what's typically involved to help you get started:
-
-1. Choose between using either:
-    1. `template.sh` (fully self-contained)
-    2. `script.sh` with `source.sh` (source in most functions)
-2. Depending on your choice open `template.sh` or `script.sh` for editing
-3. Update the `script_usage()` function with additional usage guidance
-4. Update the `parse_params()` function with additional script parameters
-5. Add additional functions to implement the desired functionality
-6. Update the `main()` function to call your additional functions
-
-### Adding a `hostname` parameter
-
-The following contrived example demonstrates how to add a parameter to display the system's hostname.
-
-Update the `script_usage()` function by inserting the following before the `EOF`:
-
-```plain
-    --hostname                  Display the system's hostname
-```
-
-Update the `parse_params()` function by inserting the following before the default case statement (`*)`):
+Add options to the `parse_params()` function using this pattern:
 
 ```bash
---hostname)
-    hostname=true
-    ;;
+function parse_params() {
+    # ...
+    case "${param}" in
+        -m | --mock)
+            ### Description for mock option. @DEFAULT:default_value@
+
+            # Add validation logic here
+            # ...
+
+            # variable naming convention: _option_<option-name>
+            _option_mock="${1-}"
+            shift
+            ;;
+        # ...
+    esac
+}
 ```
 
-Update the `main()` function by inserting the following after the existing initialisation statements:
+### Auto parsing rules
+
+- Lines starting with `###` become help text displayed when specified `-h|--help` option
+- Use `@DEFAULT:value@` to set default values. It's automatically removed from help text.
+- For boolean flags, omit the value assignment and shift.
+
+### Built-in Functions
 
 ```bash
-if [[ -n ${hostname-} ]]; then
-    pretty_print "Hostname is: $(hostname)"
-fi
+# Logging
+info "Information message"
+warn "Warning message" 
+error "Error message"
+debug "Debug message"
+
+# Utilities
+check_binary "command" fatal    # Check if command exists
+check_superuser                 # Validate sudo access
+script_exit "message" 0         # Exit with message
 ```
 
-## Controversies
+### Example Script
 
-The Bash scripting community is an opinionated one. This is not a bad thing, but it does mean that some decisions made in this template aren't going to be agreed upon by everyone. A few of the most notable ones are highlighted here with an explanation of the rationale.
+```bash
+#!/usr/bin/env bash
+source source.sh
+
+function parse_params() {
+    # Add your custom options here
+    case "${param}" in
+        -f | --file)
+            ### Input file path. @DEFAULT:input.txt@
+            _option_file="${1}"
+            shift
+            ;;
+        # ...built-in options...
+    esac
+}
+
+function main() {
+    script_init "$@"
+    parse_params "$@"
+    
+    info "Processing file: ${_option_file}"
+    # Your logic here
+}
+
+main "$@"
+```
+
+## Design Decisions
 
 ### errexit (_set -e_)
 
-Conventional wisdom has for a long time held that at the top of every Bash script should be `set -e` (or the equivalent `set -o errexit`). This modifies the behaviour of Bash to exit immediately when it encounters a non-zero exit code from an executed command if it meets certain criteria. This would seem like an obviously useful behaviour in many cases, however, controversy arises both from the complexity of the grammar which determines if a command is eligible for this behaviour and the fact that there are many circumstances where a non-zero exit code is expected and should not result in termination of the script. An excellent overview of the argument against this option can be found in [BashFAQ/105](https://mywiki.wooledge.org/BashFAQ/105).
+`set -e` modifies Bash to exit immediately when encountering a non-zero exit code. While controversial due to its complexity and cases where non-zero exits are expected, this template enables it because:
 
-My personal view is that the benefits of `errexit` outweigh its disadvantages. More importantly, a script which is compatible with this option will work just as well if it is disabled, however, the inverse is not true. By being compatible with `errexit` those who find it useful can use this template without modification while those opposed can simply disable it without issue.
+- Scripts compatible with `errexit` work without it, but not vice versa
+- Benefits outweigh disadvantages for production scripts
+- Can be disabled if needed without breaking functionality
 
 ### nounset (_set -u_)
 
-By enabling `set -u` (or the equivalent `set -o nounset`) the script will exit if an attempt is made to expand an unset variable. This can be useful both for detecting typos as well as potentially premature usage of variables which were expected to have been set earlier. The controvery here arises in that many Bash scripting coding idioms rely on referencing unset variables, which in the absence of this option are perfectly valid. Further discussion on this option can be found in [BashFAQ/112](https://mywiki.wooledge.org/BashFAQ/112).
-
-This option is enabled for the same reasons as described above for `errexit`.
+`set -u` exits when expanding unset variables, useful for detecting typos and premature variable usage. Enabled for the same rationale as `errexit` - better to be compatible and allow disabling if needed.
 
 ## License
 
-All content is licensed under the terms of [The MIT License](LICENSE).
+Licensed under [The MIT License](LICENSE).

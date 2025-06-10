@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 ## FILE        : @NAME@
+## VERSION     : v1.0.0
 ## DESCRIPTION : General Bash script template
-## CREATED     : @TIME@
-## UPDATED     : @TIME@
-## VERSION     : v0.0.1
+## AUTHOR      : Silverbullet069
+## REPOSITORY  : @REPO@
 ## LICENSE     : MIT License
 
-## TEMURL      : https://github.com/Silverbullet069/bash-script-template/releases/tag/v2.1.3
+## TEMREPO     : https://github.com/Silverbullet069/bash-script-template
 ## TEMVER      : v2.1.4
 ## TEMLIC      : MIT License
 
@@ -571,7 +571,7 @@ function parse_params() {
 function script_usage() {
     cat << EOF
 
-Usage: #~NAME~# [OPTIONS] ...
+Usage: @NAME@ [OPTIONS] ...
 
 Add short description and examples here...
 
@@ -595,9 +595,18 @@ function main() {
     lock_init user
 
     # start here
-    info "This is an info message"
-    warn "This is a warning message"
+    # shellcheck disable=SC2154
+    info "script_params: ${script_params}"
+    # shellcheck disable=SC2154
+    info "script_path: ${script_path}"
+    # shellcheck disable=SC2154
+    info "script_dir: ${script_dir}"
+    # shellcheck disable=SC2154
+    info "script_name: ${script_name}"
+
     error "This is an error message"
+    warn "This is a warning message"
+    info "This is an info message"
     debug "This is a debug message"
 }
 
@@ -606,7 +615,7 @@ function main() {
 # ============================================================================ #
 
 # Enable xtrace if the DEBUG environment variable is set
-if [[ -n ${DEBUG-} ]]; then
+if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     set -o xtrace # Trace the execution of the script (debug)
 fi
 

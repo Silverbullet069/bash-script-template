@@ -2,10 +2,10 @@ name: Create Release
 
 on:
   push:
-    branches: [main]
+    branches: [$default-branch]
     tags: ["v*"]
   pull_request:
-    branches: [main]
+    branches: [$default-branch]
     types: [closed]
   workflow_dispatch:
 
@@ -57,20 +57,20 @@ jobs:
 
           echo "## What's Changed" > release_notes.md
           echo "" >> release_notes.md
-          git log $COMMIT_RANGE --pretty=format:"* %s" --reverse >> release_notes.md
+          git log $COMMIT_RANGE --pretty=format:"* %s%b" --reverse >> release_notes.md
 
           # Also add auto-generated notes for PR info
           echo "" >> release_notes.md
           echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${LATEST_TAG}...${{ steps.check_version.outputs.version }}" >> release_notes.md
 
           gh release create \
-          ${{ steps.check_version.outputs.version }} \
-          --title ${{ steps.check_version.outputs.version }} \
-          --fail-on-no-commits \
-          --verify-tag \
-          --target main \
-          --notes-file release_notes.md \
-          --latest \
-          source.sh script.sh template.sh clone_bash_template.fish
+            ${{ steps.check_version.outputs.version }} \
+            --title ${{ steps.check_version.outputs.version }} \
+            --fail-on-no-commits \
+            --verify-tag \
+            --target main \
+            --notes-file release_notes.md \
+            --latest \
+            source.sh script.sh template.sh template_lite.sh clone_bash_template.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

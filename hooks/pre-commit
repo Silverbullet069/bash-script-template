@@ -1,65 +1,115 @@
 #!/usr/bin/env bash
 
-# Pre-commit hook to update version numbers in shell scripts
-# This hook extracts version from package.json and updates TEMVER lines in shell scripts
+## FILE        : pre-commit
+## VERSION     : v2.1.4
+## DESCRIPTION : Pre-commit hook to update version numbers in shell scripts
+## AUTHOR      : Silverbullet069
+## REPOSITORY  : https://github.com/Silverbullet069/bash-script-template
+## LICENSE     : MIT License
 
-set -e
+# ============================================================================ #
 
-# Check if package.json exists
-if [[ ! -f "package.json" ]]; then
-    echo "Warning: package.json not found, skipping version update"
-    exit 0
+# Enable xtrace if the DEBUG environment variable is set
+if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
+    set -o xtrace # Trace the execution of the script (debug)
 fi
 
-# Check if jq is available
-if ! command -v jq &>/dev/null; then
-    echo "Warning: jq not found, skipping version update"
-    exit 0
+# Only enable these shell behaviours if we're not being sourced
+# Approach via: https://stackoverflow.com/a/28776166/8787985
+if ! (return 0 2>/dev/null); then
+    # A better class of script...
+    set -o errexit  # Exit on most errors (see the manual)
+    set -o nounset  # Disallow expansion of unset variables
+    set -o pipefail # Use last non-zero exit code in a pipeline
 fi
 
-# Extract version from package.json
-VERSION=$(jq -r '.version' package.json)
+# Enable errtrace or the error trap handler will not work as expected
+set -o errtrace # Ensure the error trap handler is inherited
 
-if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
-    echo "Warning: Could not extract version from package.json"
-    exit 0
-fi
+# Make `for f in *.txt` work when `*.txt` matches zero files
+shopt -s nullglob globstar
 
-echo "Updating version numbers to v$VERSION in shell scripts..."
+# Set IFS to preferred implementation
+#IFS=$' '
 
-# Files to update
-FILES=("script.sh" "source.sh" "build.sh" "template.sh")
+# if not sourced
+if ! (return 0 2>/dev/null); then
 
-# Track if any files were modified
-MODIFIED=false
-
-for file in "${FILES[@]}"; do
-    if [[ -f "$file" ]]; then
-        # Check if file contains TEMVER line and needs updating
-        if grep -q "## TEMVER    [[:space:]]*:[[:space:]]*v[0-9]\+\.[0-9]\+\.[0-9]\+" "$file"; then
-            # Create backup
-            cp "$file" "$file.bak"
-
-            # Replace version
-            sed -i "s/## TEMVER    [[:space:]]*:[[:space:]]*v[0-9]\+\.[0-9]\+\.[0-9]\+/## TEMVER      : v$VERSION/g" "$file"
-
-            # Check if file was actually modified
-            if ! cmp -s "$file" "$file.bak"; then
-                echo "Updated version in $file"
-                git add "$file"
-                MODIFIED=true
-            fi
-
-            # Remove backup
-            rm "$file.bak"
-        fi
+    # Check if package.json exists
+    if [[ ! -f "package.json" ]]; then
+        echo "Warning: package.json not found, skipping version update"
+        exit 0
     fi
-done
 
-if [[ "$MODIFIED" == true ]]; then
-    echo "Version numbers updated to v$VERSION"
-else
-    echo "No version updates needed"
+    # Check if jq is available
+    if ! command -v jq &>/dev/null; then
+        echo "Warning: jq not found, skipping version update"
+        exit 0
+    fi
+
+    # Extract version from package.json
+    VERSION=$(jq -r '.version' package.json)
+
+    if [[ -z "${VERSION}" || "${VERSION}" == "null" ]]; then
+        echo "Warning: Could not extract version from package.json"
+        exit 0
+    fi
+
+    echo "Updating version numbers to v${VERSION} in shell scripts..."
+
+    # Files that use TEMVER
+    TEMVER_FILES=("script.sh" "template.sh")
+
+    # Files that use VERSION
+    VERSION_FILES=("source.sh" "build.sh" "clone_bash_template.sh" "template_lite.sh")
+
+    # Track if any files were modified
+    MODIFIED=false
+
+    # Function to update version in file
+    _update_version() {
+        local file="$1"
+        local version_field="$2"
+
+        if [[ -f "${file}" ]]; then
+
+            # Check if file contains version line and needs updating
+            if grep -q "##[[:space:]]*${version_field}[[:space:]]*:[[:space:]]*v[0-9]\+\.[0-9]\+\.[0-9]\+" "${file}"; then
+
+                # Create backup
+                cp "${file}" "$file.bak"
+
+                # Replace version for specified field
+                sed -i "s/^\([[:space:]]*#[#*+-]*[[:space:]]*${version_field}[[:space:]]*:[[:space:]]*\)v[0-9]\+\.[0-9]\+\.[0-9]\+/\1v${VERSION}/g" "${file}"
+
+                # Check if file was actually modified
+                if ! cmp -s "${file}" "${file}.bak"; then
+                    echo "Updated ${version_field} in ${file} to ${VERSION}"
+                    git add "${file}"
+                    MODIFIED=true
+                fi
+
+                # Remove backup
+                rm "${file}.bak"
+            fi
+        fi
+    }
+
+    # Update TEMVER files
+    for file in "${TEMVER_FILES[@]}"; do
+        _update_version "${file}" "TEMVER"
+    done
+
+    # Update VERSION files
+    for file in "${VERSION_FILES[@]}"; do
+        _update_version "${file}" "VERSION"
+    done
+
+    if [[ "$MODIFIED" == true ]]; then
+        echo "Version numbers updated to v${VERSION}"
+    else
+        echo "No version updates needed"
+    fi
+
+    exit 0
 fi
-
-exit 0

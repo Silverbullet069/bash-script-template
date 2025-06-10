@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
 
-## FILE        : @NAME@
-## VERSION     : v1.0.0
-## DESCRIPTION : General Bash script template
+## FILE        : clone_bash_template.sh
+## VERSION     : v2.1.4
+## DESCRIPTION : Copy template.sh / template_lite.sh / source.sh + script.sh
 ## AUTHOR      : Silverbullet069
-## REPOSITORY  : @REPO@
+## REPOSITORY  : https://github.com/Silverbullet069/bash-script-template
 ## LICENSE     : MIT License
-
-## TEMREPO     : https://github.com/Silverbullet069/bash-script-template
-## TEMVER      : v2.1.4
-## TEMLIC      : MIT License
 
 # ============================================================================ #
 
@@ -53,13 +49,14 @@ function parse_params() {
 
                 # Extract default value using a more structured syntax: @DEFAULT:value@
                 if [[ $help_text =~ @DEFAULT:([^@]+)@ ]]; then
-                    local -r default_value="${BASH_REMATCH[1]}"
+                    local default_value="${BASH_REMATCH[1]}"
                     # add default value to help
                     option_help+="=${default_value}"
                     options["${option_name}"]="${default_value}"
                     # Remove the placeholder from help text
                     help_text="${help_text/@DEFAULT:${default_value}@/}"
                     help_text="${help_text% }" # trim trailing space
+                    default_value=  # reset default value
                 fi
 
                 # short and long format of the parameter name shouldn't exceeded 25 characters
@@ -86,19 +83,37 @@ function parse_params() {
         shift
         case "${param}" in
             # Add your options here
-            # ...
+            -m | --mode)
+                ### Specify template mode (full|lite|source+script). @DEFAULT:lite@
+                if [[ ! "${1-}" =~ ^(full|lite|source\+script)$ ]]; then
+                    script_exit "Invalid template mode: ${1}. Valid values: (full|lite|src)"
+                fi
 
+                _option_mode="${1}"
+                shift
+                ;;
+            -o | --output)
+                ### Specify output directory or file path.
+                ### Defaults to current working directory.
+
+                if [[ -d "${1-}" || (-f "${1-}" && "${1-}" =~ \.(sh|bash)$) ]]; then
+                    _option_output="$(realpath "${1-}")"
+                    shift
+                else
+                    script_exit "Invalid output. Please specify a directory path or a file path with .sh or .bash extension." 1
+                fi
+                ;;
             # Built-in options
             # NOTE: ### comment will be displayed as short description for options in --help output
             -l | --log-level)
-                ### Specify log level (DBG|INF|WRN|ERR). Default: INF. @DEFAULT:INF@
+                ### Specify log level (DBG|INF|WRN|ERR). @DEFAULT:INF@
                 ### Add DEBUG=1 to enable Bash debug mode.
 
+                if [[ -z "${LOG_LEVELS[${1-}]}" ]]; then
+                    script_exit "Invalid log level: ${1-}. Valid values: ${LOG_LEVELS[*]}" 1
+                fi
                 _option_log_level="${1}"
                 shift
-                if [[ -z "${LOG_LEVELS[${_option_log_level}]}" ]]; then
-                    script_exit "Invalid log level: ${_option_log_level}. Choose 1 of the following: ${LOG_LEVELS[*]}" 2
-                fi
                 ;;
             -n | --no-colour)
                 ### Disables colour output
@@ -131,6 +146,9 @@ function parse_params() {
                 ;;
         esac
     done
+
+    # option output default to current working directory
+    [[ -z "${_option_output-}" ]] && _option_output="$(pwd)" || true
 
     # Check if options array is empty
     if [[ "${#options[@]}" -eq 0 ]]; then
@@ -173,20 +191,39 @@ function main() {
     colour_init
     lock_init user
 
-    # start here
-    # shellcheck disable=SC2154
-    info "script_params: ${script_params}"
-    # shellcheck disable=SC2154
-    info "script_path: ${script_path}"
-    # shellcheck disable=SC2154
-    info "script_dir: ${script_dir}"
-    # shellcheck disable=SC2154
-    info "script_name: ${script_name}"
+    # built-in dereference
+    # shellcheck disable=SC2312
 
-    error "This is an error message"
-    warn "This is a warning message"
-    info "This is an info message"
-    debug "This is a debug message"
+    _copy_file() {
+        local src="$1"
+        local dest="$2"
+        # shellcheck disable=SC2154
+        if [[ ! -f "${script_dir}/${src}" ]]; then
+            script_exit "${src} is not existed. Check again." 1
+        fi
+
+        if cp -iv "${script_dir}/${src}" "${dest}"; then
+            info "Successfully copied ${src} to ${dest}"
+        else
+            warn "Failed to copy ${src} to ${dest}. Skipping..." 1
+        fi
+    }
+
+    case "${_option_mode}" in
+        full)
+            _copy_file "template.sh" "${_option_output}"
+            ;;
+        lite)
+            _copy_file "template_lite.sh" "${_option_output}"
+            ;;
+        source\+script)
+            _copy_file "source.sh" "${_option_output}"
+            _copy_file "script.sh" "${_option_output}"
+            ;;
+        *)
+            script_exit "Something's wrong with the validation logic of -m|--mode option. Check again" 2
+            ;;
+    esac
 }
 
 # ============================================================================ #
@@ -194,7 +231,7 @@ function main() {
 # ============================================================================ #
 
 # Enable xtrace if the DEBUG environment variable is set
-if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
+if [[ -n ${DEBUG-} ]]; then
     set -o xtrace # Trace the execution of the script (debug)
 fi
 
@@ -217,8 +254,8 @@ shopt -s nullglob globstar
 # IFS=$' '
 
 # shellcheck source=source.sh
-# shellcheck disable=SC1091
-source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
+# shellcheck disable=SC1091,SC2312
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/source.sh"
 
 # Invoke main with args if not sourced
 # Approach via: https://stackoverflow.com/a/28776166/8787985

@@ -1,33 +1,34 @@
 {
-    "name": "bash-script-template",
-    "version": "2.1.4",
-    "description": "A Bash scripting template incorporating best practices & several useful functions.",
-    "directories": {
-        "test": "tests"
-    },
-    "scripts": {
-        "script": "./script.sh",
-        "template": "./template.sh",
-        "test": "npx bats tests/test.sh && SCRIPT_NAME=template.sh npx bats tests/test.sh"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/Silverbullet069/bash-script-template.git"
-    },
-    "keywords": [
-        "bash",
-        "shell",
-        "script",
-        "template",
-        "automation"
-    ],
-    "author": "Silverbullet069",
-    "license": "ISC",
-    "bugs": {
-        "url": "https://github.com/Silverbullet069/bash-script-template/issues"
-    },
-    "homepage": "https://github.com/Silverbullet069/bash-script-template#readme",
-    "devDependencies": {
-        "bats": "^1.12.0"
-    }
+  "name": "bash-script-template",
+  "version": "2.1.4",
+  "description": "A Bash scripting template incorporating best practices & several useful functions.",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "script": "./script.sh",
+    "template": "./template.sh",
+    "template-lite": "./template-lite.sh",
+    "test": "./run_test.sh npx bats tests/test.sh && SCRIPT_NAME=template.sh ./run_test.sh npx bats tests/test.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Silverbullet069/bash-script-template.git"
+  },
+  "keywords": [
+    "bash",
+    "shell",
+    "script",
+    "template",
+    "automation"
+  ],
+  "author": "Silverbullet069",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Silverbullet069/bash-script-template/issues"
+  },
+  "homepage": "https://github.com/Silverbullet069/bash-script-template#readme",
+  "devDependencies": {
+    "bats": "^1.12.0"
+  }
 }

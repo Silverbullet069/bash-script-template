@@ -9,9 +9,9 @@ enable=all
 #
 # Check ID          Symbolic name                   Type
 # SC2250            require-variable-braces         optional
+# SC2015            ignore A && B || C              optional
 disable=SC2250
+disable=SC2015
 
 # Add the script directory to the search path for source statements
 source-path=SCRIPTDIR
-
-# vim: syntax=conf cc=80 tw=79 ts=4 sw=4 sts=4 et sr

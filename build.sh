@@ -1,19 +1,13 @@
 #!/usr/bin/env bash
 
-## FILE        : @NAME@
-## DESCRIPTION : Build script that merge source.sh and script.sh into one
-## CREATED     : @TIME@
-## UPDATED     : @TIME@
-## VERSION     : v0.0.1
+## FILE        : build.sh
+## VERSION     : v2.1.4
+## DESCRIPTION : Merge source.sh and script.sh to template.sh
+## AUTHOR      : Silverbullet069
+## REPOSITORY  : https://github.com/Silverbullet069/bash-script-template
 ## LICENSE     : MIT License
 
-## TEMURL      : https://github.com/Silverbullet069/bash-script-template/releases/tag/v2.1.3
-## TEMVER      : v2.1.4
-## TEMLIC      : MIT License
-
 # ============================================================================ #
-
-# Assembles the all-in-one template script by combining source.sh & script.sh
 
 # Enable xtrace if the DEBUG environment variable is set
 if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
@@ -29,25 +23,26 @@ set -o pipefail # Use last non-zero exit code in a pipeline
 # Main control flow
 function main() {
 
-    source_content_no_header=$(tail -n +15 source.sh)
-    script_header=$(head -n 15 script.sh)
-    script_content_no_header=$(tail -n +15 script.sh)
-    # Remove shellcheck source lines
-    script_content_no_header=$(echo "${script_content_no_header}" | grep -v "# shellcheck source=source.sh" | grep -v "# shellcheck disable=SC1091" | grep -v '^source.*source\.sh"')
+    local -r source_body=$(sed -n '/# =\+/,$p' source.sh | tail -n +2) || true
+
+    # NOTE: leave the comment divider
+    local -r script_header=$(sed -n '1,/# =\+/p' script.sh) || true
+
+    # Extract + remove shellcheck source lines
+    local -r script_body=$(sed -n '/# =\+/,$p' script.sh | tail -n +2 | grep -v -e "# shellcheck source=source.sh" -e "# shellcheck disable=SC1091" -e '^source.*source\.sh"') || true
 
     # Combine parts in desired order and write to template.sh
     {
         echo "${script_header}"
-        echo "${source_content_no_header}"
-        echo "${script_content_no_header}"
+        echo "${source_body}"
+        echo "${script_body}"
     } > template.sh
 
     # Make template.sh executable
     chmod +x template.sh
+
     echo "Build template.sh successfully"
 }
 
 # Template, assemble
-main
-
-# vim: syntax=sh cc=80 tw=79 ts=4 sw=4 sts=4 et sr
+main "$@"
