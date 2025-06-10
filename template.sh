@@ -1,19 +1,21 @@
 #!/usr/bin/env bash
 
-## FILE        : #~NAME~#
+## FILE        : @NAME@
 ## DESCRIPTION : General Bash script template
-## CREATED     : #~TIME~#
-## TEMVER      : v2.1.3
-## TEMURL      : https://github.com/Silverbullet069/bash-script-template
-## AUTHOR      : ralish (https://github.com/ralish/)
-## CONTRIBUTOR : Silverbullet069 (https://github.com/Silverbullet069/)
+## CREATED     : @TIME@
+## UPDATED     : @TIME@
+## VERSION     : v0.0.1
 ## LICENSE     : MIT License
+
+## TEMURL      : https://github.com/Silverbullet069/bash-script-template/releases/tag/v2.1.3
+## TEMVERSION  : v2.1.3
+## TEMLICENSE  : MIT License
 
 # ============================================================================ #
 
 # NOTE: Important to set first as we use it in _log() and exit handler
 # shellcheck disable=SC2155
-readonly ta_none="$(tput sgr0 2>/dev/null || true)"
+readonly ta_none="$(tput sgr0 2> /dev/null || true)"
 
 # Log levels associative array with ascending severity
 declare -rA LOG_LEVELS=(["DBG"]=0 ["INF"]=1 ["WRN"]=2 ["ERR"]=3)
@@ -200,31 +202,31 @@ function colour_init() {
 
     if [[ -z "${_option_no_colour-}" ]]; then
         # Text attributes
-        readonly ta_bold="$(tput bold 2>/dev/null || true)"
-        readonly ta_uscore="$(tput smul 2>/dev/null || true)"
-        readonly ta_blink="$(tput blink 2>/dev/null || true)"
-        readonly ta_reverse="$(tput rev 2>/dev/null || true)"
-        readonly ta_conceal="$(tput invis 2>/dev/null || true)"
+        readonly ta_bold="$(tput bold 2> /dev/null || true)"
+        readonly ta_uscore="$(tput smul 2> /dev/null || true)"
+        readonly ta_blink="$(tput blink 2> /dev/null || true)"
+        readonly ta_reverse="$(tput rev 2> /dev/null || true)"
+        readonly ta_conceal="$(tput invis 2> /dev/null || true)"
 
         # Foreground codes
-        readonly fg_black="$(tput setaf 0 2>/dev/null || true)"
-        readonly fg_blue="$(tput setaf 4 2>/dev/null || true)"
-        readonly fg_cyan="$(tput setaf 6 2>/dev/null || true)"
-        readonly fg_green="$(tput setaf 2 2>/dev/null || true)"
-        readonly fg_magenta="$(tput setaf 5 2>/dev/null || true)"
-        readonly fg_red="$(tput setaf 1 2>/dev/null || true)"
-        readonly fg_white="$(tput setaf 7 2>/dev/null || true)"
-        readonly fg_yellow="$(tput setaf 3 2>/dev/null || true)"
+        readonly fg_black="$(tput setaf 0 2> /dev/null || true)"
+        readonly fg_blue="$(tput setaf 4 2> /dev/null || true)"
+        readonly fg_cyan="$(tput setaf 6 2> /dev/null || true)"
+        readonly fg_green="$(tput setaf 2 2> /dev/null || true)"
+        readonly fg_magenta="$(tput setaf 5 2> /dev/null || true)"
+        readonly fg_red="$(tput setaf 1 2> /dev/null || true)"
+        readonly fg_white="$(tput setaf 7 2> /dev/null || true)"
+        readonly fg_yellow="$(tput setaf 3 2> /dev/null || true)"
 
         # Background codes
-        readonly bg_black="$(tput setab 0 2>/dev/null || true)"
-        readonly bg_blue="$(tput setab 4 2>/dev/null || true)"
-        readonly bg_cyan="$(tput setab 6 2>/dev/null || true)"
-        readonly bg_green="$(tput setab 2 2>/dev/null || true)"
-        readonly bg_magenta="$(tput setab 5 2>/dev/null || true)"
-        readonly bg_red="$(tput setab 1 2>/dev/null || true)"
-        readonly bg_white="$(tput setab 7 2>/dev/null || true)"
-        readonly bg_yellow="$(tput setab 3 2>/dev/null || true)"
+        readonly bg_black="$(tput setab 0 2> /dev/null || true)"
+        readonly bg_blue="$(tput setab 4 2> /dev/null || true)"
+        readonly bg_cyan="$(tput setab 6 2> /dev/null || true)"
+        readonly bg_green="$(tput setab 2 2> /dev/null || true)"
+        readonly bg_magenta="$(tput setab 5 2> /dev/null || true)"
+        readonly bg_red="$(tput setab 1 2> /dev/null || true)"
+        readonly bg_white="$(tput setab 7 2> /dev/null || true)"
+        readonly bg_yellow="$(tput setab 3 2> /dev/null || true)"
 
         # Reset terminal once at the end
         printf '%b' "${ta_none}"
@@ -289,7 +291,7 @@ function quiet_init() {
         # Redirect all output to a temporary file
         # shellcheck disable=SC2312
         script_output="$(mktemp --tmpdir "${script_name}".XXXXX)"
-        exec 3>&1 4>&2 1>"${script_output}" 2>&1
+        exec 3>&1 4>&2 1> "${script_output}" 2>&1
     fi
 }
 
@@ -311,7 +313,7 @@ function lock_init() {
         script_exit 'Missing or invalid argument to lock_init()!' 2
     fi
 
-    if mkdir "${lock_dir}" 2>/dev/null; then
+    if mkdir "${lock_dir}" 2> /dev/null; then
         readonly script_lock="${lock_dir}"
         info "Acquired script lock: ${script_lock}"
     else
@@ -339,10 +341,10 @@ function build_path() {
     while [[ -n "${temp_path}" ]]; do
         local path_entry="${temp_path%%:*}"
         case "${new_path}:" in
-        *:"${path_entry}":*) ;;
-        *)
-            new_path="${new_path}:${path_entry}"
-            ;;
+            *:"${path_entry}":*) ;;
+            *)
+                new_path="${new_path}:${path_entry}"
+                ;;
         esac
         temp_path="${temp_path#*:}"
     done
@@ -362,7 +364,7 @@ function check_binary() {
         script_exit 'Missing required argument to check_binary()!' 2
     fi
 
-    if ! command -v "${1}" >/dev/null 2>&1; then
+    if ! command -v "${1}" > /dev/null 2>&1; then
         if [[ -n "${2-}" ]]; then
             script_exit "Missing dependency: Couldn't locate ${1}." 1
         else
@@ -432,8 +434,6 @@ function run_as_root() {
     fi
 }
 
-# ============================================================================ #
-
 # DESC: Parameter parser
 # ARGS: $@ (optional): Arguments provided to the script
 # OUTS: Variables indicating command-line parameters and options
@@ -470,19 +470,30 @@ function parse_params() {
                 options["${option_name}"]= # empty
 
             elif [[ $line =~ ^[[:space:]]*###[[:space:]]*(.*)$ ]]; then
-                help_options+=("$(printf "    %-28s %s\n" "${option_help}" "${BASH_REMATCH[1]}")")
-                option_help= # reset
+                local help_text="${BASH_REMATCH[1]}"
 
-                if [[ $line =~ ^[[:space:]]*###.*Default:[[:space:]]*(.*)$ ]]; then
-                    options["${option_name}"]="${BASH_REMATCH[1]}"
+                # Extract default value using a more structured syntax: @DEFAULT:value@
+                if [[ $help_text =~ @DEFAULT:([^@]+)@ ]]; then
+                    local -r default_value="${BASH_REMATCH[1]}"
+                    # add default value to help
+                    option_help+="=${default_value}"
+                    options["${option_name}"]="${default_value}"
+                    # Remove the placeholder from help text
+                    help_text="${help_text/@DEFAULT:${default_value}@/}"
+                    help_text="${help_text% }" # trim trailing space
                 fi
+
+                # short and long format of the parameter name shouldn't exceeded 25 characters
+                help_options+=("$(printf "    %-25s %s\n" "${option_help}" "${help_text}")")
+                option_help= # reset
             fi
         fi
-    done <"$script_file"
+    done < "$script_file"
 
     # Check if options array is empty
-    # shellcheck disable=SC2015
-    [[ "${#options[@]}" -eq 0 ]] && script_exit "No valid flags found in parse_params() function. Check the function implementation." 1 || true
+    if [[ "${#options[@]}" -eq 0 ]]; then
+        script_exit "No valid flags found in parse_params() function. Check the function implementation." 1
+    fi
 
     # Initialize all flags with default value
     for option in "${!options[@]}"; do
@@ -495,56 +506,57 @@ function parse_params() {
         local param="${1}"
         shift
         case "${param}" in
-        # Add your options here
-        # ...
+            # Add your options here
+            # ...
 
-        # Built-in options
-        # NOTE: ### comment will be displayed as short description for options in --help output
-        -l | --log-level)
-            ### Specify log level. Add DEBUG=1 to turn on Bash debug mode.
-            ### Valid values: DBG, INF, WRN, ERR. Default: INF
+            # Built-in options
+            # NOTE: ### comment will be displayed as short description for options in --help output
+            -l | --log-level)
+                ### Specify log level (DBG|INF|WRN|ERR). Default: INF. @DEFAULT:INF@
+                ### Add DEBUG=1 to enable Bash debug mode.
 
-            _option_log_level="${1}"
-            shift
-            if [[ -z "${LOG_LEVELS[${_option_log_level}]}" ]]; then
-                script_exit "Invalid log level: ${_option_log_level}. Choose 1 of the following: ${LOG_LEVELS[*]}" 2
-            fi
-            ;;
-        -n | --no-colour)
-            ### Disables colour output
+                _option_log_level="${1}"
+                shift
+                if [[ -z "${LOG_LEVELS[${_option_log_level}]}" ]]; then
+                    script_exit "Invalid log level: ${_option_log_level}. Choose 1 of the following: ${LOG_LEVELS[*]}" 2
+                fi
+                ;;
+            -n | --no-colour)
+                ### Disables colour output
 
-            _option_no_colour=1
-            ;;
-        -q | --quiet)
-            ### Run silently unless an error is encountered
+                _option_no_colour=1
+                ;;
+            -q | --quiet)
+                ### Run silently unless an error is encountered
 
-            _option_quiet=1
-            ;;
-        -t | --timestamp)
-            ### Enables timestamp output
+                _option_quiet=1
+                ;;
+            -t | --timestamp)
+                ### Enables timestamp output
 
-            _option_timestamp=1
-            ;;
-        -h | --help)
-            ### Displays this help and exit
+                _option_timestamp=1
+                ;;
+            -h | --help)
+                ### Displays this help and exit
 
-            script_usage
-            exit 0
-            ;;
-        *)
-            # internal function calling
-            if declare -F "${param}" &>/dev/null && [[ -n "${DEBUG-}" ]]; then
-                "${param}" "$@"
+                script_usage
                 exit 0
-            fi
-            script_exit "Invalid parameter was provided: ${param}" 1
-            ;;
+                ;;
+            *)
+                # internal function calling
+                if declare -F "${param}" &> /dev/null && [[ -n "${DEBUG-}" ]]; then
+                    "${param}" "$@"
+                    exit 0
+                fi
+                script_exit "Invalid parameter was provided: ${param}" 1
+                ;;
         esac
     done
 
     # Check if options array is empty
-    # shellcheck disable=SC2015
-    [[ ${#options[@]} -eq 0 ]] && script_exit "No options found in parse_params() function." 1 || true
+    if [[ "${#options[@]}" -eq 0 ]]; then
+        script_exit "No options found in parse_params() function." 1
+    fi
 
     # Make the options read-only
     for option in "${!options[@]}"; do
@@ -557,7 +569,7 @@ function parse_params() {
 # OUTS: None
 # RETS: None
 function script_usage() {
-    cat <<EOF
+    cat << EOF
 
 Usage: #~NAME~# [OPTIONS] ...
 
@@ -600,7 +612,7 @@ fi
 
 # Only enable these shell behaviours if we're not being sourced
 # Approach via: https://stackoverflow.com/a/28776166/8787985
-if ! (return 0 2>/dev/null); then
+if ! (return 0 2> /dev/null); then
     # A better class of script...
     set -o errexit  # Exit on most errors (see the manual)
     set -o nounset  # Disallow expansion of unset variables
@@ -618,6 +630,6 @@ shopt -s nullglob globstar
 
 # Invoke main with args if not sourced
 # Approach via: https://stackoverflow.com/a/28776166/8787985
-if ! (return 0 2>/dev/null); then
+if ! (return 0 2> /dev/null); then
     main "$@"
 fi

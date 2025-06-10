@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 
-## FILE        : #~NAME~#
+## FILE        : @NAME@
 ## DESCRIPTION : Build script that merge source.sh and script.sh into one
-## CREATED     : #~TIME~#
-## TEMVER      : v2.1.3
-## TEMURL      : https://github.com/Silverbullet069/bash-script-template
-## AUTHOR      : ralish (https://github.com/ralish/)
-## CONTRIBUTOR : Silverbullet069 (https://github.com/Silverbullet069/)
+## CREATED     : @TIME@
+## UPDATED     : @TIME@
+## VERSION     : v0.0.1
 ## LICENSE     : MIT License
+
+## TEMURL      : https://github.com/Silverbullet069/bash-script-template/releases/tag/v2.1.3
+## TEMVERSION  : v2.1.3
+## TEMLICENSE  : MIT License
 
 # ============================================================================ #
 
@@ -15,21 +17,21 @@
 
 # Enable xtrace if the DEBUG environment variable is set
 if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
-    set -o xtrace       # Trace the execution of the script (debug)
+    set -o xtrace # Trace the execution of the script (debug)
 fi
 
 # A better class of script...
-set -o errexit          # Exit on most errors (see the manual)
-set -o errtrace         # Make sure any error trap is inherited
-set -o nounset          # Disallow expansion of unset variables
-set -o pipefail         # Use last non-zero exit code in a pipeline
+set -o errexit  # Exit on most errors (see the manual)
+set -o errtrace # Make sure any error trap is inherited
+set -o nounset  # Disallow expansion of unset variables
+set -o pipefail # Use last non-zero exit code in a pipeline
 
 # Main control flow
 function main() {
 
-    source_content_no_header=$(tail -n +11 source.sh)
-    script_header=$(head -n 11 script.sh)
-    script_content_no_header=$(tail -n +11 script.sh)
+    source_content_no_header=$(tail -n +15 source.sh)
+    script_header=$(head -n 15 script.sh)
+    script_content_no_header=$(tail -n +15 script.sh)
     # Remove shellcheck source lines
     script_content_no_header=$(echo "${script_content_no_header}" | grep -v "# shellcheck source=source.sh" | grep -v "# shellcheck disable=SC1091" | grep -v '^source.*source\.sh"')
 
