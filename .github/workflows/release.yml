@@ -2,10 +2,10 @@ name: Create Release
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
     tags: ["v*"]
   pull_request:
-    branches: [main, master]
+    branches: [main]
     types: [closed]
   workflow_dispatch:
 
@@ -47,14 +47,29 @@ jobs:
       - name: Create Release
         if: steps.check_version.outputs.skip_release == 'false'
         run: |
+          LATEST_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName // ""')
+
+          if [[ -n "$LATEST_TAG" ]]; then
+            COMMIT_RANGE="${LATEST_TAG}..HEAD"
+          else
+            COMMIT_RANGE="HEAD"
+          fi
+
+          echo "## What's Changed" > release_notes.md
+          echo "" >> release_notes.md
+          git log $COMMIT_RANGE --pretty=format:"* %s" --reverse >> release_notes.md
+
+          # Also add auto-generated notes for PR info
+          echo "" >> release_notes.md
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${LATEST_TAG}...${{ steps.check_version.outputs.version }}" >> release_notes.md
+
           gh release create \
           ${{ steps.check_version.outputs.version }} \
           --title ${{ steps.check_version.outputs.version }} \
           --fail-on-no-commits \
           --verify-tag \
           --target main \
-          --notes-start-tag "v2.0.0" \
-          --generate-notes \
+          --notes-file release_notes.md \
           --latest \
           source.sh script.sh template.sh clone_bash_template.fish
         env:
