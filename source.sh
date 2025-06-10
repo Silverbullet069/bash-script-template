@@ -8,8 +8,8 @@
 ## LICENSE     : MIT License
 
 ## TEMURL      : https://github.com/Silverbullet069/bash-script-template/releases/tag/v2.1.3
-## TEMVERSION  : v2.1.3
-## TEMLICENSE  : MIT License
+## TEMVER      : v2.1.4
+## TEMLIC      : MIT License
 
 # ============================================================================ #
 

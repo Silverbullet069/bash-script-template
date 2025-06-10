@@ -36,12 +36,12 @@ MODIFIED=false
 for file in "${FILES[@]}"; do
     if [[ -f "$file" ]]; then
         # Check if file contains TEMVER line and needs updating
-        if grep -q "## TEMVERSION[[:space:]]*:[[:space:]]*v[0-9]\+\.[0-9]\+\.[0-9]\+" "$file"; then
+        if grep -q "## TEMVER    [[:space:]]*:[[:space:]]*v[0-9]\+\.[0-9]\+\.[0-9]\+" "$file"; then
             # Create backup
             cp "$file" "$file.bak"
 
             # Replace version
-            sed -i "s/## TEMVERSION[[:space:]]*:[[:space:]]*v[0-9]\+\.[0-9]\+\.[0-9]\+/## TEMVER      : v$VERSION/g" "$file"
+            sed -i "s/## TEMVER    [[:space:]]*:[[:space:]]*v[0-9]\+\.[0-9]\+\.[0-9]\+/## TEMVER      : v$VERSION/g" "$file"
 
             # Check if file was actually modified
             if ! cmp -s "$file" "$file.bak"; then

@@ -1,6 +1,6 @@
 {
     "name": "bash-script-template",
-    "version": "2.1.3",
+    "version": "2.1.4",
     "description": "A Bash scripting template incorporating best practices & several useful functions.",
     "directories": {
         "test": "tests"
