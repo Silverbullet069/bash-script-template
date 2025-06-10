@@ -2,10 +2,10 @@ name: Create Release
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
     tags: ["v*"]
   pull_request:
-    branches: [main]
+    branches: [main, master]
     types: [closed]
   workflow_dispatch:
 
@@ -23,8 +23,8 @@ jobs:
         uses: actions/checkout@v4
         # NOTE: if you want to reuse commit messages as release note's body
         # NOTE: fetch all code history
-        # with:
-        ### fetch-depth: 0
+        with:
+          fetch-depth: 0
 
       # this step outputs the version
       # refer to it as ${{ steps.get_version.outputs.version }}`
@@ -53,6 +53,7 @@ jobs:
           --fail-on-no-commits \
           --verify-tag \
           --target main \
+          --notes-start-tag "v2.0.0" \
           --generate-notes \
           --latest \
           source.sh script.sh template.sh clone_bash_template.fish
