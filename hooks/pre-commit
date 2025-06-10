@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+# Pre-commit hook to update version numbers in shell scripts
+# This hook extracts version from package.json and updates TEMVER lines in shell scripts
+
+set -e
+
+# Check if package.json exists
+if [[ ! -f "package.json" ]]; then
+    echo "Warning: package.json not found, skipping version update"
+    exit 0
+fi
+
+# Check if jq is available
+if ! command -v jq &>/dev/null; then
+    echo "Warning: jq not found, skipping version update"
+    exit 0
+fi
+
+# Extract version from package.json
+VERSION=$(jq -r '.version' package.json)
+
+if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
+    echo "Warning: Could not extract version from package.json"
+    exit 0
+fi
+
+echo "Updating version numbers to v$VERSION in shell scripts..."
+
+# Files to update
+FILES=("script.sh" "source.sh" "build.sh" "template.sh")
+
+# Track if any files were modified
+MODIFIED=false
+
+for file in "${FILES[@]}"; do
+    if [[ -f "$file" ]]; then
+        # Check if file contains TEMVER line and needs updating
+        if grep -q "## TEMVERSION[[:space:]]*:[[:space:]]*v[0-9]\+\.[0-9]\+\.[0-9]\+" "$file"; then
+            # Create backup
+            cp "$file" "$file.bak"
+
+            # Replace version
+            sed -i "s/## TEMVERSION[[:space:]]*:[[:space:]]*v[0-9]\+\.[0-9]\+\.[0-9]\+/## TEMVER      : v$VERSION/g" "$file"
+
+            # Check if file was actually modified
+            if ! cmp -s "$file" "$file.bak"; then
+                echo "Updated version in $file"
+                git add "$file"
+                MODIFIED=true
+            fi
+
+            # Remove backup
+            rm "$file.bak"
+        fi
+    fi
+done
+
+if [[ "$MODIFIED" == true ]]; then
+    echo "Version numbers updated to v$VERSION"
+else
+    echo "No version updates needed"
+fi
+
+exit 0
