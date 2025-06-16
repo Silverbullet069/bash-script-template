@@ -8,7 +8,7 @@
 ## LICENSE     : MIT License
 
 ## TEMREPO     : https://github.com/Silverbullet069/bash-script-template
-## TEMVER      : v2.1.4
+## TEMVER      : v2.2.0
 ## TEMLIC      : MIT License
 
 # ============================================================================ #
