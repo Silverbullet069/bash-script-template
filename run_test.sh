@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ## FILE        : run_dev.sh
-## VERSION     : v2.2.0
+## VERSION     : v2.3.0
 ## DESCRIPTION : Execute runtime inside an isolated containerized environment
 ## AUTHOR      : Silverbullet069
 ## REPOSITORY  : https://github.com/Silverbullet069/bash-script-template

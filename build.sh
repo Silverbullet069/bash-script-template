@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ## FILE        : build.sh
-## VERSION     : v2.2.0
+## VERSION     : v2.3.0
 ## DESCRIPTION : Merge source.sh and script.sh to template.sh
 ## AUTHOR      : Silverbullet069
 ## REPOSITORY  : https://github.com/Silverbullet069/bash-script-template

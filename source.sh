@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ## FILE        : source.sh
-## VERSION     : v2.2.0
+## VERSION     : v2.3.0
 ## DESCRIPTION : A sourced script with reusable functions.
 ## AUTHOR      : Silverbullet069
 ## REPOSITORY  : https://github.com/Silverbullet069/bash-script-template
