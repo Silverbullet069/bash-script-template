@@ -6,10 +6,7 @@
     "test": "tests"
   },
   "scripts": {
-    "script": "./script.sh",
-    "template": "./template.sh",
-    "template-lite": "./template-lite.sh",
-    "test": "./run_test.sh npx bats tests/test.sh && SCRIPT_NAME=template.sh ./run_test.sh npx bats tests/test.sh"
+    "test": "./run_test.sh npx bats tests/test.sh tests/test_clone.sh && SCRIPT_NAME=template.sh ./run_test.sh npx bats tests/test.sh"
   },
   "repository": {
     "type": "git",

@@ -53,7 +53,7 @@ function parse_params() {
 
                 # Extract default value using a more structured syntax: @DEFAULT:value@
                 if [[ $help_text =~ @DEFAULT:([^@]+)@ ]]; then
-                    local -r default_value="${BASH_REMATCH[1]}"
+                    local default_value="${BASH_REMATCH[1]}"
                     # add default value to help
                     option_help+="=${default_value}"
                     options["${option_name}"]="${default_value}"
@@ -91,14 +91,14 @@ function parse_params() {
             # Built-in options
             # NOTE: ### comment will be displayed as short description for options in --help output
             -l | --log-level)
-                ### Specify log level (DBG|INF|WRN|ERR). Default: INF. @DEFAULT:INF@
+                ### Specify log level (DBG|INF|WRN|ERR). @DEFAULT:INF@
                 ### Add DEBUG=1 to enable Bash debug mode.
 
+                if [[ -z "${LOG_LEVELS[${1-}]}" ]]; then
+                    script_exit "Invalid log level: ${1-}. Choose 1 of the following: ${LOG_LEVELS[*]}" 2
+                fi
                 _option_log_level="${1}"
                 shift
-                if [[ -z "${LOG_LEVELS[${_option_log_level}]}" ]]; then
-                    script_exit "Invalid log level: ${_option_log_level}. Choose 1 of the following: ${LOG_LEVELS[*]}" 2
-                fi
                 ;;
             -n | --no-colour)
                 ### Disables colour output
@@ -122,11 +122,6 @@ function parse_params() {
                 exit 0
                 ;;
             *)
-                # internal function calling
-                if declare -F "${param}" &> /dev/null && [[ -n "${DEBUG-}" ]]; then
-                    "${param}" "$@"
-                    exit 0
-                fi
                 script_exit "Invalid parameter was provided: ${param}" 1
                 ;;
         esac
@@ -183,6 +178,7 @@ function main() {
     # shellcheck disable=SC2154
     info "script_name: ${script_name}"
 
+    # Logging helper functions
     error "This is an error message"
     warn "This is a warning message"
     info "This is an info message"

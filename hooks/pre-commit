@@ -61,7 +61,7 @@ if ! (return 0 2>/dev/null); then
     TEMVER_FILES=("script.sh" "template.sh")
 
     # Files that use VERSION
-    VERSION_FILES=("source.sh" "build.sh" "clone_bash_template.sh" "template_lite.sh")
+    VERSION_FILES=("source.sh" "build.sh" "clone_bash_template.sh" "template_lite.sh" "run_test.sh")
 
     # Track if any files were modified
     MODIFIED=false

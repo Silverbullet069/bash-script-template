@@ -33,10 +33,9 @@ shopt -s nullglob globstar
 #IFS=$' '
 
 function main() {
-    echo "Checking ${SCRIPT_NAME:-script.sh}..."
 
     docker run \
-        --name="bash-script-template" \
+        --name="bash-script-template-test" \
         --init \
         --rm \
         --user="$(id -u):$(id -g)" \

@@ -116,19 +116,19 @@ function script_trap_err() {
         fi
 
         # Print basic debugging information
-        error '***** Abnormal termination of script *****\n'
-        error 'Script Path:            %s\n' "${script_path}"
-        error 'Script Parameters:      %s\n' "${script_params}"
-        error 'Script Exit Code:       %s\n' "${exit_code}"
+        error "***** Abnormal termination of script *****\n"
+        error "Script Path:            %s\n" "${script_path}"
+        error "Script Parameters:      %s\n" "${script_params}"
+        error "Script Exit Code:       %s\n" "${exit_code}"
 
         # Print the script log if we have it. It's possible we may not if we
         # failed before we even called quiet_init(). This can happen if bad
         # parameters were passed to the script so we bailed out very early.
         if [[ -n ${script_output-} ]]; then
             # shellcheck disable=SC2312
-            error 'Script Output:\n\n%s' "$(cat "${script_output}")"
+            error "Script Output:\n\n%s" "$(cat "${script_output}")"
         else
-            error 'Script Output:          None (failed before log init)\n'
+            error "Script Output:          None (failed before log init)\n"
         fi
     fi
 
@@ -168,26 +168,35 @@ function script_trap_exit() {
 #       1: Abnormal exit due to external error
 #       2: Abnormal exit due to script error
 function script_exit() {
-    # Check arguments
-    if [[ $# -eq 0 ]]; then
-        error 'Missing required argument to script_exit()!'
+    # Check arguments - script_exit requires 1-2 arguments, not exactly 2
+    if [[ $# -eq 0 || $# -gt 2 ]]; then
+        error "script_exit() requires exactly TWO arguments: a string message and a numeric exit status code range from 1-255."
         exit 2
     fi
 
-    # Handle success cases
-    if [[ $# -eq 1 || ("${2-}" =~ ^[0-9]+$ && "${2}" -eq 0) ]]; then
-        info "$1"
-        exit 0
+    if [[ -z "${1-}" ]]; then
+        error "script_exit() requires non-empty first argument"
+        exit 2
     fi
 
-    # Handle error cases with numeric exit code
-    if [[ "${2-}" =~ ^[0-9]+$ ]]; then
-        error "${1}"
-        script_trap_err "${2}"
-        # script_trap_err will exit, so we shouldn't reach here
+    if [[ -n "${1-}" && -z "${2-}" ]]; then
+        error "script_exit() requires non-empty second argument"
+        exit 2
     fi
 
-    script_exit 'Missing required argument to script_exit()!' 2
+    # Second argument (exit code) validation when provided
+    if [[ -n "${1-}" && -n "${2-}" ]]; then
+        if [[ ! "${2}" =~ ^[0-9]+$ ]] || [[ "${2}" -lt 1 || "${2}" -gt 255 ]]; then
+            error "Exit code must be numeric 1-255, got: ${2}"
+            exit 2
+        else
+            error "${1}"
+            script_trap_err "${2}"
+        fi
+    fi
+
+    error "Something is not right, script_exit shouldn't reach here"
+    exit 3
 }
 
 # DESC: Initialise colour variables
@@ -474,7 +483,7 @@ function parse_params() {
 
                 # Extract default value using a more structured syntax: @DEFAULT:value@
                 if [[ $help_text =~ @DEFAULT:([^@]+)@ ]]; then
-                    local -r default_value="${BASH_REMATCH[1]}"
+                    local default_value="${BASH_REMATCH[1]}"
                     # add default value to help
                     option_help+="=${default_value}"
                     options["${option_name}"]="${default_value}"
@@ -512,14 +521,14 @@ function parse_params() {
             # Built-in options
             # NOTE: ### comment will be displayed as short description for options in --help output
             -l | --log-level)
-                ### Specify log level (DBG|INF|WRN|ERR). Default: INF. @DEFAULT:INF@
+                ### Specify log level (DBG|INF|WRN|ERR). @DEFAULT:INF@
                 ### Add DEBUG=1 to enable Bash debug mode.
 
+                if [[ -z "${LOG_LEVELS[${1-}]}" ]]; then
+                    script_exit "Invalid log level: ${1-}. Choose 1 of the following: ${LOG_LEVELS[*]}" 2
+                fi
                 _option_log_level="${1}"
                 shift
-                if [[ -z "${LOG_LEVELS[${_option_log_level}]}" ]]; then
-                    script_exit "Invalid log level: ${_option_log_level}. Choose 1 of the following: ${LOG_LEVELS[*]}" 2
-                fi
                 ;;
             -n | --no-colour)
                 ### Disables colour output
@@ -543,11 +552,6 @@ function parse_params() {
                 exit 0
                 ;;
             *)
-                # internal function calling
-                if declare -F "${param}" &> /dev/null && [[ -n "${DEBUG-}" ]]; then
-                    "${param}" "$@"
-                    exit 0
-                fi
                 script_exit "Invalid parameter was provided: ${param}" 1
                 ;;
         esac
@@ -604,6 +608,7 @@ function main() {
     # shellcheck disable=SC2154
     info "script_name: ${script_name}"
 
+    # Logging helper functions
     error "This is an error message"
     warn "This is a warning message"
     info "This is an info message"
@@ -636,6 +641,7 @@ shopt -s nullglob globstar
 
 # Set IFS to preferred implementation
 # IFS=$' '
+
 
 # Invoke main with args if not sourced
 # Approach via: https://stackoverflow.com/a/28776166/8787985

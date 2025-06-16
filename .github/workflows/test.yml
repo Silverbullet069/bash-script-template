@@ -54,13 +54,17 @@ jobs:
       - name: Test script.sh
         shell: bash
         env:
-          # BATS_LIB_PATH=
           TERM: xterm
         run: bats tests/test.sh
       - name: Test template.sh
         shell: bash
         env:
-          # BATS_LIB_PATH=
           SCRIPT_NAME: template.sh
           TERM: xterm
         run: bats tests/test.sh
+      - name: Test clone_bash_template.sh
+        shell: bash
+        env:
+          SCRIPT_NAME: template.sh
+          TERM: xterm
+        run: bats tests/test_clone.sh
