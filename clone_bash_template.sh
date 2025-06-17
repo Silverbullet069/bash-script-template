@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ## FILE        : clone_bash_template.sh
-## VERSION     : v2.3.0
+## VERSION     : v2.3.1
 ## DESCRIPTION : Copy template.sh / template_lite.sh / source.sh + script.sh
 ## AUTHOR      : Silverbullet069
 ## REPOSITORY  : https://github.com/Silverbullet069/bash-script-template
