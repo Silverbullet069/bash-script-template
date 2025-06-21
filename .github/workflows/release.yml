@@ -30,12 +30,17 @@ jobs:
       # refer to it as ${{ steps.get_version.outputs.version }}`
       - name: Check if current version is the same as the latest version
         id: check_version
-        if: hashFiles('package.json') != ''
         run: |
-          VERSION="v$(jq -r '.version' package.json)"
+          # Get the current tag if we're on a tag push, otherwise get the latest tag
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" =~ ^refs/tags/ ]]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          fi
+
           echo "version=${VERSION}" >> ${GITHUB_OUTPUT}
 
-          LATEST_VERSION=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
+          LATEST_VERSION=$(gh release list --limit 1 --json tagName --jq '.[0].tagName // ""')
           if [[ "${VERSION}" == "${LATEST_VERSION}" ]]; then
             echo "skip_release=true" >> ${GITHUB_OUTPUT}
           else
