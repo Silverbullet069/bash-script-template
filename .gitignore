@@ -35,9 +35,6 @@ temp/
 [._]ss[a-gi-z]
 [._]sw[a-p]
 
-# Node
-node_modules
-
 # Misc
-template-symlink
-script-symlink
+node_modules
+hooks

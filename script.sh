@@ -1,21 +1,26 @@
 #!/usr/bin/env bash
 
-## FILE        : @NAME@
-## VERSION     : v1.0.0
-## DESCRIPTION : General Bash script template
-## AUTHOR      : Silverbullet069
-## REPOSITORY  : @REPO@
-## LICENSE     : MIT License
+# ============================================================================ #
 
-## TEMREPO     : https://github.com/Silverbullet069/bash-script-template
-## TEMVER      : v2.3.1
-## TEMLIC      : MIT License
+## FILE         : @NAME@
+## VERSION      : @VER@
+## DESCRIPTION  : @DESC@
+## AUTHOR       : @AUTHOR@
+## REPOSITORY   : @REPO@
+## LICENSE      : @LIC@
+
+## TEMREPO      : https://github.com/Silverbullet069/bash-script-template
+## TEMMODE      : @MODE@
+## TEMUPDATED   : @UPDATED@
+## TEMLIC       : MIT License
 
 # ============================================================================ #
 
 # DESC: Parameter parser
 # ARGS: $@ (optional): Arguments provided to the script
-# OUTS: Variables indicating command-line parameters and options
+# OUTS: $_option_*    : variables indicating command-line parameters and options
+#       $options      : a variable holding underscore-separated options name
+#       $help_options : an indexed array, each line contains a line of help message
 # RETS: None
 function parse_params() {
 
@@ -23,20 +28,21 @@ function parse_params() {
 
     # shellcheck disable=SC2016,SC2312
     local script_file="${BASH_SOURCE[0]}"
-    local in_case_block=false
-    local -A options=()        # associative array
+    declare -gA options=()     # associative array
     declare -g help_options=() # indexed array
 
+    local in_case_block=
     while IFS= read -r line; do
         if [[ $line =~ case.*param.*in ]]; then
             in_case_block=true
             continue
         elif [[ $line =~ esac ]]; then
-            in_case_block=false
+            # reset
+            in_case_block=
             continue
         fi
 
-        if [[ $in_case_block == true ]]; then
+        if [[ -n "${in_case_block-}" ]]; then
 
             if [[ $line =~ ^[[:space:]]*-([a-z])[[:space:]]\|[[:space:]]--([a-z-]+)\)$ ]]; then
                 option_name="${BASH_REMATCH[2]//-/_}"
@@ -67,11 +73,11 @@ function parse_params() {
                 option_help= # reset
             fi
         fi
-    done < "$script_file"
+    done <"$script_file"
 
     # Check if options array is empty
     if [[ "${#options[@]}" -eq 0 ]]; then
-        script_exit "No valid flags found in parse_params() function. Check the function implementation." 1
+        script_exit "No valid flags found in ${FUNCNAME[0]}() function." 2
     fi
 
     # Initialize all flags with default value
@@ -92,10 +98,10 @@ function parse_params() {
             # NOTE: ### comment will be displayed as short description for options in --help output
             -l | --log-level)
                 ### Specify log level (DBG|INF|WRN|ERR). @DEFAULT:INF@
-                ### Add DEBUG=1 to enable Bash debug mode.
+                ### Add DEBUG=true to enable Bash debug mode.
 
-                if [[ -z "${LOG_LEVELS[${1-}]}" ]]; then
-                    script_exit "Invalid log level: ${1-}. Choose 1 of the following: ${LOG_LEVELS[*]}" 2
+                if [[ -z "${LOG_LEVELS[${1}]}" ]]; then
+                    script_exit "Invalid log level: ${1}. Please choose 1 of the following: ${LOG_LEVELS[*]}" 2
                 fi
                 _option_log_level="${1}"
                 shift
@@ -103,17 +109,17 @@ function parse_params() {
             -n | --no-colour)
                 ### Disables colour output
 
-                _option_no_colour=1
+                _option_no_colour=true
                 ;;
             -q | --quiet)
                 ### Run silently unless an error is encountered
 
-                _option_quiet=1
+                _option_quiet=true
                 ;;
             -t | --timestamp)
                 ### Enables timestamp output
 
-                _option_timestamp=1
+                _option_timestamp=true
                 ;;
             -h | --help)
                 ### Displays this help and exit
@@ -122,14 +128,14 @@ function parse_params() {
                 exit 0
                 ;;
             *)
-                script_exit "Invalid parameter was provided: ${param}" 1
+                script_exit "${FUNCNAME[0]}() receives invalid arguments: ${param}" 2
                 ;;
         esac
     done
 
     # Check if options array is empty
     if [[ "${#options[@]}" -eq 0 ]]; then
-        script_exit "No options found in parse_params() function." 1
+        script_exit "No options found in ${FUNCNAME[0]}() function." 2
     fi
 
     # Make the options read-only
@@ -143,7 +149,7 @@ function parse_params() {
 # OUTS: None
 # RETS: None
 function script_usage() {
-    cat << EOF
+    cat <<EOF
 
 Usage: @NAME@ [OPTIONS] ...
 
@@ -196,7 +202,7 @@ fi
 
 # Only enable these shell behaviours if we're not being sourced
 # Approach via: https://stackoverflow.com/a/28776166/8787985
-if ! (return 0 2> /dev/null); then
+if ! (return 0 2>/dev/null); then
     # A better class of script...
     set -o errexit  # Exit on most errors (see the manual)
     set -o nounset  # Disallow expansion of unset variables
@@ -218,6 +224,6 @@ source "$(dirname "${BASH_SOURCE[0]}")/source.sh"
 
 # Invoke main with args if not sourced
 # Approach via: https://stackoverflow.com/a/28776166/8787985
-if ! (return 0 2> /dev/null); then
+if ! (return 0 2>/dev/null); then
     main "$@"
 fi

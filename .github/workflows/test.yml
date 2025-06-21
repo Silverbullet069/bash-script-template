@@ -23,48 +23,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Cache Bats dependencies
-        id: cache-bats-libs
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-bats-libs
-        with:
-          path: "${{ github.workspace }}/tests/test_helper"
-          key: ${{ runner.os }}-tests-${{ env.cache-name }}-${{ hashFiles('**/package.json') }} # not every submodules have package-lock.json? Weird
-          # a new cache is created when the content of `package.json` change, or when the runner's operating system changes
-          restore-keys: |
-            ${{ runner.os }}-tests-${{ env.cache-name }}
-            ${{ runner.os }}-tests-
-            ${{ runner.os }}-
+      - name: Pull Bats Docker image
+        run: docker pull bats/bats:latest
 
-      - name: Setup Bats and bats libs
-        # provide subsequent steps with output from the step
-        id: setup-bats
-        uses: bats-core/bats-action@3.0.0
-        timeout-minutes: 10
-        # inputs
-        with:
-          # by default, Bats libs are installed in default location
-          # the inputs are set to `/usr/lib/bats-LIB_NAME`
-          # to enable caching Bats libs, installed them inside HOME directory
-          # NOTE: works for linux/win/mac
-          support-path: "${{ github.workspace }}/tests/test_helper/bats-support"
-          assert-path: "${{ github.workspace }}/tests/test_helper/bats-assert"
-          file-path: "${{ github.workspace }}/tests/test_helper/bats-file"
-      - name: Test script.sh
-        shell: bash
-        env:
-          TERM: xterm
-        run: bats tests/test.sh
-      - name: Test template.sh
-        shell: bash
-        env:
-          SCRIPT_NAME: template.sh
-          TERM: xterm
-        run: bats tests/test.sh
       - name: Test clone_bash_template.sh
         shell: bash
         env:
-          SCRIPT_NAME: template.sh
           TERM: xterm
-        run: bats tests/test_clone.sh
+        run: |
+          docker run \
+            --rm \
+            --user="$(id -u):$(id -g)" \
+            --network none \
+            --security-opt=no-new-privileges:true \
+            --volume="$PWD:/code:ro" \
+            bats/bats:latest \
+            /code/tests
