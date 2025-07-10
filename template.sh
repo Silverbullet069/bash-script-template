@@ -12,8 +12,7 @@
 ## TEMREPO      : https://github.com/Silverbullet069/bash-script-template
 ## TEMMODE      : @MODE@
 ## TEMUPDATED   : @UPDATED@
-## TEMLIC       : MIT License
-
+## TEMLIC       : BSD 3-Clause License
 # ============================================================================ #
 
 # NOTE: Important to set first as we use it in _log() and exit handler

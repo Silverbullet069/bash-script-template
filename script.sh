@@ -12,7 +12,7 @@
 ## TEMREPO      : https://github.com/Silverbullet069/bash-script-template
 ## TEMMODE      : @MODE@
 ## TEMUPDATED   : @UPDATED@
-## TEMLIC       : MIT License
+## TEMLIC       : BSD 3-Clause License
 
 # ============================================================================ #
 

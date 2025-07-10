@@ -6,7 +6,7 @@
 ## DESCRIPTION  : A comprehensive utility library providing reusable functions.
 ## AUTHOR       : silverbullet069
 ## REPOSITORY   : https://github.com/Silverbullet069/bash-script-template
-## LICENSE      : MIT License
+## LICENSE      : BSD 3-Clause License
 
 # ============================================================================ #
 
