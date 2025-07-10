@@ -4,22 +4,29 @@
         // ShellCheck
         ".shellcheckrc": "properties"
     },
-
     // Important to disable for EditorConfig to apply correctly
     // See: https://github.com/editorconfig/editorconfig-vscode/issues/153
     "files.trimTrailingWhitespace": false,
-
     // Markdown table of contents generation
     "markdown.extension.toc.levels": "2..2",
     "markdown.extension.toc.slugifyMode": "github",
-
     // Use EditorConfig for shfmt settings
     "shellformat.useEditorConfig": true,
-
     "[shellscript]": {
         "editor.formatOnSave": true,
-        "editor.rulers": [79]
+        "editor.rulers": [
+            79
+        ],
+        "editor.quickSuggestions": {
+            "other": "off",
+            "comments": "off",
+            "strings": "off"
+        },
+        // "editor.inlineSuggest.enabled": false,
+        // "editor.suggestOnTriggerCharacters": false,
+        // "editor.tabCompletion": "off",
+        // "editor.acceptSuggestionOnEnter": "off"
     },
-
-    "prettier.enable": false
+    "prettier.enable": true,
+    "markdown.validate.enabled": true
 }
