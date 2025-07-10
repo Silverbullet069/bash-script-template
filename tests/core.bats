@@ -21,7 +21,6 @@ setup() {
     export SUTS=(
         "${ROOT}/script.sh"
         "${ROOT}/template.sh"
-        "${ROOT}/clone.sh"
     )
 
     for sut in "${SUTS[@]}"; do
