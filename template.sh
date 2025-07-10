@@ -11,8 +11,546 @@
 
 ## TEMREPO      : https://github.com/Silverbullet069/bash-script-template
 ## TEMMODE      : @MODE@
+## TEMVER       : @TAG@
 ## TEMUPDATED   : @UPDATED@
 ## TEMLIC       : BSD 3-Clause License
+
+# ============================================================================ #
+
+# ============================================================================ #
+# REGISTRATION                                                                 #
+# ============================================================================ #
+
+# option name -> "short|default|help|type|required|constraints"
+declare -gA OPTIONS=()
+
+# option name only
+declare -ag ORDERS=()
+
+# option name -> value
+declare -gA VALUES=()
+
+# DESC: Get option name in long form, given its short form
+# ARGS: $1 (required): short option name
+# OUTS: Option
+# RETS: 0 on success, 2 on failure
+function get_long_name() {
+    if [[ -z "${1-}" ]]; then
+        script_exit "Short option name is empty"
+    fi
+    local -r param="$1"
+
+    for name in "${!OPTIONS[@]}"; do
+        local metadata="${OPTIONS["${name}"]}"
+        local short
+        IFS="${DELIM}" read -r short _ _ _ _ _ <<<"${metadata}"
+        if [[ "${param}" == "${short}" ]]; then
+            echo "${name}"
+            return 0
+        fi
+    done
+
+    script_exit "Unknown short option: ${param}"
+}
+
+# NOTE: ASCII Unit Separator (0x1F) can't be typed from the keyboard
+declare -gr DELIM=$'\x1F'
+
+# Type validation functions mapping
+declare -gA VALIDATORS=(
+    ["string"]="validate_string"
+    ["int"]="validate_integer"
+    ["float"]="validate_float"
+    ["path"]="validate_path"
+    ["file"]="validate_file"
+    ["dir"]="validate_directory"
+    ["choice"]="validate_choice"
+    ["email"]="validate_email"
+    ["url"]="validate_url"
+    ["bool"]="validate_boolean"
+)
+
+# ============================================================================ #
+
+# DESC: Register a command-line option
+# ARGS: $1 (required): long-form option name (with -- prefix, e.g. --log-level)
+#       $2 (optional): short-form option name (with - prefix, e.g. -l)
+#       $3 (optional): default value
+#       $4 (optional): help text
+#       $5 (optional): type (string|int|float|path|file|dir|choice|email|url|bool)
+#       $6 (optional): required (true|false)
+#       $7 (optional): constraints (comma-separated for choice type)
+function register_option() {
+    if [[ -z "${1-}" ]]; then
+        script_exit "Option name is empty"
+    fi
+
+    local -r name="$1"
+    local -r short="${2:-}"
+    local -r default="${3:-}"
+    local -r help="${4:-"This is a help string"}"
+    local -r type="${5:-string}"
+    local -r required="${6:-false}"
+    local -r constraints="${7:-}"
+
+    OPTIONS["${name}"]="${short}${DELIM}${default}${DELIM}${help}${DELIM}${type}${DELIM}${required}${DELIM}${constraints}"
+    ORDERS+=("${name}")
+    VALUES["${name}"]="${default}"
+
+    # first validation
+    validate_option "${name}"
+}
+
+# ============================================================================ #
+# TYPE VALIDATION                                                              #
+# ============================================================================ #
+
+# DESC: Validate string parameter
+# ARGS: $1 (required): value to validate
+#       $2 (optional): constraints (not used)
+# OUTS: None
+# RETS: 0 always (string validation always passes unless empty and required)
+function validate_string() {
+    if [[ -z "${1-}" ]]; then
+        script_exit "String is empty"
+    fi
+
+    local -r value="$1"
+}
+
+# DESC: Validate integer parameter
+# ARGS: $1 (required): value to validate
+#       $2 (optional): constraints (format: min,max)
+# OUTS: Error message if failure
+# RETS: 0 if success, 2 if the argument is not integer or the value doesn't satisfy the containsts
+function validate_integer() {
+    if [[ -z "${1-}" ]]; then
+        script_exit "Integer is empty"
+    fi
+
+    local -r value="$1"
+    local -r constraints="${2:-}"
+
+    if ! [[ "${value}" =~ ^-?[0-9]+$ ]]; then
+        script_exit "Not a valid integer: ${value}"
+    fi
+
+    if [[ -n "${constraints}" ]]; then
+        # both can be empty, but must have a comma
+        if [[ ! "${constraints}" =~ ^-?[0-9]*,?-?[0-9]*$ ]]; then
+            script_exit "Invalid constraints format for integer: '${constraints}'. Expected format: min,max"
+        fi
+        IFS=',' read -r min max <<<"${constraints}"
+        if [[ -n "${min}" && "${value}" -lt "${min}" ]]; then
+            error "Value ${value} is below minimum ${min}"
+            return 1
+        fi
+        if [[ -n "${max}" && "${value}" -gt "$max" ]]; then
+            error "Value ${value} is above maximum ${max}"
+            return 1
+        fi
+    fi
+}
+
+# DESC: Validate float parameter
+# ARGS: $1 (required): value to validate
+#       $2 (optional): constraints (format: min,max)
+# OUTS: Error message if failure
+# RETS: 0 if success, 2 if the argument is not float or the value doesn't satisfy the constraints
+function validate_float() {
+    if [[ -z "${1-}" ]]; then
+        script_exit "Float is empty"
+    fi
+
+    local -r value="$1"
+    local -r constraints="${2:-}"
+
+    if ! [[ "${value}" =~ ^-?[0-9]*\.?[0-9]+$ ]]; then
+        script_exit "Not a valid float: ${value}"
+    fi
+
+    if [[ -n "${constraints}" ]]; then
+        # both can be empty, but must have a comma
+        if [[ ! "${constraints}" =~ ^-?[0-9]*\.?[0-9]*,?-?[0-9]*\.?[0-9]*$ ]]; then
+            script_exit "Invalid constraints format for float: '${constraints}'. Expected format: min,max"
+        fi
+        IFS=',' read -r min max <<<"${constraints}"
+
+        if [[ -n "${min}" ]]; then
+            check_binary "bc" "fatal"
+            # shellcheck disable=SC2312
+            local -r is_below_min="$(echo "$value < $min" | bc -l)"
+            if [[ -n "${is_below_min}" && "${is_below_min}" -eq 1 ]]; then
+                script_exit "Value ${value} is below minimum ${min}"
+            fi
+        fi
+
+        if [[ -n "${max}" ]]; then
+            check_binary "bc" "fatal"
+            # shellcheck disable=SC2312
+            local -r is_above_max="$(echo "$value > $max" | bc -l)"
+            if [[ -n "${is_above_max}" && "${is_above_max}" -eq 1 ]]; then
+                script_exit "Value ${value} is above maximum ${max}"
+            fi
+        fi
+    fi
+}
+
+# DESC: Validate path parameter
+# ARGS: $1 (required): value to validate
+#       $2 (optional): constraints (not used)
+# OUTS: Error message if failure
+# RETS: 0 if success, 2 if path is empty
+function validate_path() {
+    if [[ -z "${1-}" ]]; then
+        script_exit "Path is empty"
+    fi
+
+    # basic path validation:
+    # - absolute path
+    # - only alphanumeric, slash, hyphen, underscore are allowed
+    # - path must not end with a slash character, except `/` (the root)`
+    # ref: https://www.baeldung.com/java-regex-check-linux-path-valid
+    # shellcheck disable=SC2312
+    local -r value="$(realpath "${1}")"
+    if [[ ! "${value}" =~ ^/|(/[_[:alnum:]]+)+$ ]]; then
+        script_exit "Not a valid path: ${value}"
+    fi
+}
+
+# DESC: Validate file parameter
+# ARGS: $1 (required): value to validate
+#       $2 (optional): constraints (format: must_exist)
+# OUTS: Error message if failure
+# RETS: 0 if success, 2 if file path is empty or doesn't exist when must_exist is set
+function validate_file() {
+    if [[ -z "${1-}" ]]; then
+        script_exit "File path is empty"
+    fi
+
+    # shellcheck disable=SC2312
+    local -r value="$(realpath "${1}")"
+    local -r constraints="${2:-}"
+
+    # update more constraints in the future...
+    if [[ -n "${constraints}" && ! "${constraints}" =~ ^(must_exist)$ ]]; then
+        script_exit "Invalid constraints format for file: '${constraints}'. Expected format: must_exist"
+    fi
+
+    if [[ "${constraints}" == "must_exist" && ! -f "${value}" ]]; then
+        script_exit "File does not exist: ${value}"
+    fi
+}
+
+# DESC: Validate directory parameter
+# ARGS: $1 (required): value to validate
+#       $2 (optional): constraints (format: must_exist)
+# OUTS: Error message if failure
+# RETS: 0 if success, 2 if directory path is empty or doesn't exist when must_exist is set
+function validate_directory() {
+    if [[ -z "${value}" ]]; then
+        script_exit "Directory path is empty"
+    fi
+
+    # shellcheck disable=SC2312
+    local -r value="$(realpath "${1}")"
+    local -r constraints="${2:-}"
+
+    # update more constraints in the future...
+    if [[ -n "${constraints}" && ! "${constraints}" =~ ^(must_exist)$ ]]; then
+        script_exit "Invalid constraints format for directory: '${constraints}'. Expected format: must_exist"
+    fi
+
+    if [[ "${constraints}" == "must_exist" && ! -d "${value}" ]]; then
+        script_exit "Directory does not exist: ${value}"
+    fi
+
+    return 0
+}
+
+# DESC: Validate choice parameter
+# ARGS: $1 (required): value to validate
+#       $2 (required): constraints (comma-separated)
+# OUTS: Error message if failure
+# RETS: 0 if success, 2 if choice is invalid or no constraints provided
+function validate_choice() {
+    if [[ -z "${1-}" ]]; then
+        script_exit "Choice value is empty"
+    fi
+    if [[ -z "${2-}" ]]; then
+        script_exit "Constraints is empty"
+    fi
+
+    local -r value="$1"
+    local -r constraints="$2"
+
+    IFS=',' read -ra choice_array <<<"${constraints}"
+    for choice in "${choice_array[@]}"; do
+        if [[ "${value}" == "${choice}" ]]; then
+            return 0
+        fi
+    done
+
+    script_exit "Invalid choice: ${value}. Use: ${constraints//,/, }"
+}
+
+# DESC: Validate email parameter
+# ARGS: $1 (required): value to validate
+#       $2 (optional): constraints (not used)
+# OUTS: Error message if failure
+# RETS: 0 if success, 2 if email format is invalid
+function validate_email() {
+    if [[ -z "${1-}" ]]; then
+        script_exit "Email is empty"
+    fi
+
+    local -r value="$1"
+    local -r email_regex="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+
+    if ! [[ "${value}" =~ ${email_regex} ]]; then
+        script_exit "Not a valid email address: ${value}"
+    fi
+}
+
+# DESC: Validate URL parameter
+# ARGS: $1 (required): value to validate
+#       $2 (optional): constraints (not used)
+# OUTS: Error message if failure
+# RETS: 0 if success, 2 if URL format is invalid
+function validate_url() {
+    if [[ -z "${1-}" ]]; then
+        script_exit "URL is empty"
+    fi
+
+    local -r value="$1"
+    local -r url_regex="^https?://[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})?(/.*)?$"
+
+    if ! [[ "${value}" =~ ${url_regex} ]]; then
+        script_exit "Not a valid URL: ${value}"
+    fi
+}
+
+# DESC: Validate boolean parameter
+# ARGS: $1 (required): value to validate
+#       $2 (optional): constraints (not used)
+# OUTS: Error message if failure
+# RETS: 0 if success, 2 if boolean format is invalid
+function validate_boolean() {
+    if [[ -z "${1-}" ]]; then
+        script_exit "Boolean is empty"
+    fi
+
+    local -r value="$1"
+    case "${value,,}" in
+    true | false | 1 | 0 | yes | no | y | n)
+        return 0
+        ;;
+    *)
+        script_exit "Not a valid boolean value: ${value}. Use: true/false, 1/0, yes/no, y/n"
+        ;;
+    esac
+}
+
+# ============================================================================ #
+# OPTION PARSER                                                                #
+# ============================================================================ #
+
+# DESC: Parse command-line parameters using declared options and arguments
+# ARGS: $@ (optional): Arguments provided to the script
+# OUTS: VALUES populated with parsed parameters
+# RETS: 0 on success, 2 on failure
+function parse_params() {
+    readonly OPTIONS ORDERS
+
+    # Parse command line arguments
+    while [[ $# -gt 0 ]]; do
+        local param="$1"
+        shift
+
+        case "${param}" in
+        --help | -h)
+            print_help_message
+            exit 0
+            ;;
+        --*=* | -*=* | --* | -*)
+            # Handle all option formats: --long=value, -short=value, --option value, -o value
+
+            local name value
+            local no_equal=false
+            if [[ "${param}" == --*=* ]]; then
+                name="${param%%=*}"
+                value="${param#*=}"
+            elif [[ "${param}" == -*=* ]]; then
+                name="$(get_long_name "${param%%=*}")"
+                value="${param#*=}"
+            elif [[ "${param}" == --* ]]; then
+                name="${param}"
+                no_equal=true
+            elif [[ "${param}" == -* ]]; then
+                name="$(get_long_name "${param}")"
+                no_equal=true
+            fi
+
+            if [[ "${no_equal}" == true ]]; then
+                local metadata="${OPTIONS["${name}"]:-}"
+                if [[ -z "${metadata}" ]]; then
+                    script_exit "Option not found: ${name}"
+                fi
+
+                local type
+                IFS="${DELIM}" read -r _ _ _ type _ _ <<<"${metadata}"
+
+                if [[ "${type}" == "bool" ]]; then
+                    value=true
+                else
+                    if [[ $# -eq 0 ]]; then
+                        script_exit "Option requires a value: ${name}"
+                    fi
+                    value="${1}"
+                    shift
+                fi
+            fi
+
+            VALUES["${name}"]="${value}"
+
+            # second validation
+            validate_option "${name}"
+            ;;
+        *)
+            script_exit "Invalid argument: ${param}"
+            ;;
+        esac
+    done
+
+    # NOTE: seal off the associative array VALUES
+    readonly VALUES
+}
+
+# DESC: Check if an option has been registered and populated value correctly
+# ARGS: $1 (required): Option name in long form
+# OUTS: Error message on failure
+# RETS: 0 on success, 2 on failure
+function validate_option() {
+    if [[ -z "${1-}" ]]; then
+        script_exit "Option is empty"
+    fi
+    local -r param="${1}"
+
+    local found=false
+    local name
+    for name in "${ORDERS[@]}"; do
+        if [[ "${name}" == "${param}" ]]; then
+            readonly found=true
+            break
+        fi
+    done
+
+    if [[ "${found}" == false ]]; then
+        script_exit "Option '${param}' not found"
+    fi
+
+    local metadata="${OPTIONS["${name}"]:-}"
+    if [[ -z "${metadata}" ]]; then
+        script_exit "Option '${name}' has empty metadata"
+    fi
+
+    local value="${VALUES["${name}"]:-}"
+    if [[ -z "${value}" ]]; then
+        script_exit "Option '${name}' has empty value"
+    fi
+
+    local short default help type required constraints
+    IFS="${DELIM}" read -r short default help type required constraints <<<"${metadata}"
+
+    # short validation
+    validate_string "${short}"
+    if [[ ! "${short}" =~ ^-[[:alnum:]]$ ]]; then
+        script_exit "Option '${name}' has invalid short name '${short}'"
+    fi
+
+    # default validation
+    validate_string "${default}"
+
+    # help validation
+    validate_string "${help}"
+
+    # type validation
+    validate_string "${type}"
+    local validator="${VALIDATORS["${type}"]:-}"
+    if [[ -z "${validator}" ]]; then
+        script_exit "Option '${name}' has invalid type '${type}'"
+    fi
+
+    # required valiation
+    validate_boolean "${required}"
+
+    # constraints validation
+    "${validator}" "${default}" "${constraints}"
+    "${validator}" "${value}" "${constraints}"
+}
+
+# ============================================================================ #
+# HELP MESSAGE GENERATION                                                      #
+# ============================================================================ #
+
+# DESC: Generate rich help text automatically
+# ARGS: None
+# OUTS: Help message
+# RETS: 0 on success, 2 on failure
+function generate_help() {
+
+    echo "Options:"
+
+    local -a displays=()
+    local -a helps=()
+    local max_width=0
+
+    # NOTE: help message render honors append order
+    for name in "${ORDERS[@]}"; do
+        local display=""
+
+        # NOTE: add a blank line to separate built-in options with custom options
+        if [[ "${name}" == "--help" ]]; then
+            displays+=("")
+            helps+=("")
+        fi
+
+        IFS="${DELIM}" read -r short default help type required constraints <<<"${OPTIONS["${name}"]}"
+
+        display="${name}"
+        if [[ -n "${short:-}" ]]; then
+            display="${short}, ${name}"
+        fi
+
+        if [[ "${type}" == "choice" && -n "${default:-}" ]]; then
+            display+="=${default}"
+        fi
+
+        if [[ "${required}" == true ]]; then
+            help+=" [required]"
+        fi
+
+        if [[ -n "${constraints:-}" ]]; then
+            help+=" [constraints: ${constraints//,/, }]"
+        fi
+
+        displays+=("${display}")
+        helps+=("${help}")
+
+        if [[ ${#display} -gt $max_width ]]; then
+            max_width=${#display}
+        fi
+    done
+
+    # dynamic width formatting
+    local format_width=$((max_width + 10))
+    for i in "${!displays[@]}"; do
+        printf "    %-${format_width}s %s\n" "${displays[$i]}" "${helps[$i]}"
+    done
+}
+
+# ============================================================================ #
+# LOGGING                                                                      #
 # ============================================================================ #
 
 # NOTE: Important to set first as we use it in _log() and exit handler
@@ -22,35 +560,55 @@ readonly ta_none="$(tput sgr0 2>/dev/null || true)"
 # Log levels associative array with ascending severity
 declare -rA LOG_LEVELS=(["DBG"]=0 ["INF"]=1 ["WRN"]=2 ["ERR"]=3)
 
-# DESC: Print message with printf-like formatting and appropriate styling
-# ARGS: $1 (required): The color of the message
-#       $2 (required): The type of log
-#       $3+ (required): The message string(s)
-# OUTS: Message to stderr and optionally to a log file
+# DESC: Core logging function - no dependencies, no recursion risk
+# ARGS: $1 (required): Log level number (0-3)
+#       $2 (required): Color code
+#       $3 (required): Log type (3 chars)
+#       $4+ (required): Message
+# OUTS: Formatted log message to stderr
 # RETS: 0
 function _log() {
 
-    # validation
-    if [[ $# -lt 3 ]]; then
-        script_exit "${FUNCNAME[0]}() requires color, log type, and at least one message string!" 2
-    fi
+    # caller validation
+    for func in "${FUNCNAME[@]}"; do
+        case "${func}" in
+        script_trap_err | script_trap_exit | script_exit)
+            script_exit "log system shouldn't be used inside script_trap_err, script_trap_exit, script_exit"
+            ;;
+        *)
+            continue
+            ;;
+        esac
+    done
 
-    local color="$1"
-    local -r log_type="$2"
-    shift 2
+    local -r level_num="$1"
+    local color="$2"
+    local -r log_type="$3"
+    shift 3
     local log_message="$*"
+    local timestamp=""
 
-    # Check current log level against configured level
-    # NOTE: _log might be called before parse_params(), _option_log_level might not exist yet
-    if [[ ${LOG_LEVELS["${log_type}"]} -lt ${LOG_LEVELS["${_option_log_level:-DBG}"]} ]]; then
-        return 0
+    # skip if _log is called before parse_params
+    local -r log_level="${VALUES["--log-level"]:-}"
+    if [[ -n "${log_level}" ]]; then
+        local -r global_level_num="${LOG_LEVELS["${log_level}"]:-}"
+        if [[ -n "${global_level_num}" && "${level_num}" -lt "${global_level_num}" ]]; then
+            return 0
+        fi
     fi
 
-    # Check whether color is disabled
-    # NOTE: _log might be called before parse_params(), _option_log_level might not exist yet
-    if [[ -n "${_option_no_colour-}" ]]; then
+    # skip if _log is called before parse_params
+    local -r is_no_color="${VALUES["--no-color"]:-}"
+    if [[ -n "${is_no_color}" && "${is_no_color}" == true ]]; then
         color="${ta_none}"
     fi
+
+    # skip if _log is called before parse_params
+    local -r is_timestamp="${VALUES["--timestamp"]:-}"
+    if [[ -n "${is_timestamp}" && "${is_timestamp}" == true ]]; then
+        timestamp="$(date +"[%Y-%m-%d %H:%M:%S %z]") "
+    fi
+
     # "${BASH_SOURCE[2]}" -> abs path to script that defined the function that called error() / warn() / info() / debug() functions
     # "${BASH_SOURCE[1]}" -> abs path to script that defined error() / warn() / info() / debug() functions
     # "${BASH_SOURCE[0]}" -> abs path to script that defined _log() function
@@ -65,29 +623,34 @@ function _log() {
         lineno="${BASH_LINENO[2]}"
     fi
 
-    # Handle timestamp if enabled
-    local timestamp=""
-    if [[ -n "${_option_timestamp-}" ]]; then
-        timestamp="$(date +"[%Y-%m-%d %H:%M:%S %z]") "
+    # Simple path colorization
+    if [[ "${log_message}" =~ ^(/|\./|~/) ]]; then
+        log_message="${fg_green:-$ta_none}${log_message}${ta_none}"
     fi
 
-    # Colorize path-like patterns (starting with / or ./ or ../ or ~/)
-    log_message=$(echo "${log_message}" | sed -E "s#(\./|\.\.\/|~/|/)([^[:space:]]*)#${fg_green-}&${ta_none}#g")
-
-    # Replace $HOME with ~
+    # Replace $HOME with ~ (safe parameter expansion)
     log_message="${log_message//\/home\/${USER-}/\~}"
 
-    printf "%s%s[%s]: %b[%-3s]%b %s\n" \
+    # Log to stdout
+    printf "%s%s[%d]: %b[%s]%b %s\n" \
         "${timestamp}" "${caller}" "${lineno}" \
         "${color}" "${log_type}" "${ta_none}" \
         "${log_message}"
 }
 
-# shellcheck disable=SC2015,SC2310
-function debug() { _log "${ta_none}" "DBG" "$@"; }
-function info() { _log "${ta_bold-}${fg_blue-}" "INF" "$@"; }
-function warn() { _log "${ta_bold-}${fg_yellow-}" "WRN" "$@"; }
-function error() { _log "${ta_bold-}${fg_red-}" "ERR" "$@"; }
+# List of logging functions in different levels
+function debug() { _log "${LOG_LEVELS["DBG"]}" "${ta_none}" "DBG" "$@"; }
+function info() { _log "${LOG_LEVELS["INF"]}" "${ta_bold:-$ta_none}${fg_blue:-$ta_none}" "INF" "$@"; }
+function warn() { _log "${LOG_LEVELS["WRN"]}" "${ta_bold:-$ta_none}${fg_yellow:-$ta_none}" "WRN" "$@"; }
+function error() { _log "${LOG_LEVELS["ERR"]}" "${ta_bold:-$ta_none}${fg_red:-$ta_none}" "ERR" "$@" >&2; }
+function critical() {
+    printf "%b%s%b" \
+        "${ta_bold-$ta_none}${bg_red-$ta_none}${fg_white-$ta_none}" \
+        "CRITICAL FAILURE - $*" \
+        "${ta_none}\n" >&2
+}
+
+# ============================================================================ #
 
 # DESC: Handler for unexpected errors
 # ARGS: $1 (optional): Exit code (defaults to 1)
@@ -103,32 +666,27 @@ function script_trap_err() {
     set +o pipefail
 
     # Validate exit code
-    if [[ ${1-} -lt 0 || ${1-} -gt 255 ]]; then
-        script_exit "Invalid arguments: $*. ${FUNCNAME[0]} must receive ONE integer exit status code ranging from 1 to 255" 2
-    fi
-    local -r exit_code="${1-1}"
+    local -r exit_code="${1:-1}"
 
-    # Output debug data if in Quiet mode
-    if [[ -n "${_option_quiet-}" ]]; then
+    # Output debug data if in Quiet mode - direct check without function calls
+    if [[ "${VALUES["--quiet"]:-}" == true ]]; then
         # Restore original file output descriptors
-        if [[ -n "${script_output-}" ]]; then
+        if [[ -n "${script_output:-}" ]]; then
             exec 1>&3 2>&4
         fi
 
-        # Print basic debugging information
-        error "Abnormal termination of script"
-        error "Script Path:       ${script_path}"
-        error "Script Parameters: ${script_params}"
-        error "Script Exit Code:  ${exit_code}"
+        # Print basic debugging information using printf to avoid recursion
+        critical "Abnormal termination of script"
+        critical "Script Path:       ${script_path:-unknown}"
+        critical "Script Parameters: ${script_params:-none}"
+        critical "Script Exit Code:  ${exit_code}"
 
-        # Print the script log if we have it. It's possible we may not if we
-        # failed before we even called quiet_init(). This can happen if bad
-        # parameters were passed to the script so we bailed out very early.
-        if [[ -n "${script_output-}" ]]; then
-            error "Script Output:"
+        # Print the script log if we have it
+        if [[ -n "${script_output:-}" ]]; then
+            critical "Script Output:"
             cat "${script_output}" >&2 || true
         else
-            error "Script Output: none (failed before log init)"
+            critical "Script Output: none (failed before log init)"
         fi
     fi
 
@@ -143,51 +701,52 @@ function script_trap_err() {
 function script_trap_exit() {
     cd "${orig_cwd}"
 
-    # Remove Quiet mode script log
-    if [[ -n "${_option_quiet-}" && -n "${script_output-}" ]]; then
+    # Remove Quiet mode script log - direct check without function calls
+    # NOTE: default value exception
+    if [[ "${VALUES["--quiet"]-}" == true && -n "${script_output-}" ]]; then
         rm "${script_output}"
-        info "Clean up script output: ${script_output}"
+        echo "Cleaned up script output: ${script_output}"
     fi
 
     # Remove script execution lock
     if [[ -d "${script_lock-}" ]]; then
         rmdir "${script_lock}"
-        info "Clean up script lock: ${script_lock}"
+        echo "Cleaned up script lock: ${script_lock}"
     fi
 
-    # Restore terminal colours
+    # Restore terminal colors
     printf '%b' "${ta_none}"
 }
 
 # DESC: Exit script with the given message
 # ARGS: $1 (required): Error message to print on exit
-#       $2 (required): Exit status code
 # OUTS: None
 # RETS: None
 # NOTE: The convention used in this script for exit codes is:
 #       1: Abnormal exit due to external error (missing dependency, network is not accessible, target dir existed, )
 #       2: Abnormal exit due to script error (empty argument, undefined options, ...)
 function script_exit() {
-
-    if [[ $# -eq 2 && "${2}" =~ ^[0-9]+$ && "${2}" -gt 0 && "${2}" -lt 256 ]]; then
-        error "${1}"
-        script_trap_err "${2}"
+    if [[ -z "${1-}" ]]; then
+        critical "${FUNCNAME[0]}: Invalid arguments: $*"
+        exit 2
     fi
 
-    script_exit "Invalid arguments: $*. ${FUNCNAME[0]}() must receive ONE string message and ONE integer exit status code ranging from 1 to 255" 2
+    critical "${FUNCNAME[1]}: ${1}"
+    script_trap_err 3
 }
 
-# DESC: Initialise colour variables
+# DESC: Initialise color variables
 # ARGS: None
 # OUTS: Read-only variables with ANSI control codes
 # RETS: None
-# NOTE: If --no-colour was set the variables will be empty. The output of the
+# NOTE: If --no-color was set the variables will be empty. The output of the
 #       $ta_none variable after each tput is redundant during normal execution,
 #       but ensures the terminal output isn't mangled when running with xtrace.
 # shellcheck disable=SC2034,SC2155
-function colour_init() {
+function color_init() {
 
-    if [[ -z "${_option_no_colour-}" ]]; then
+    # NOTE: no need default value here, color_init() runs after parse_params()
+    if [[ "${VALUES["--no-color"]}" == false ]]; then
         # Text attributes
         readonly ta_bold="$(tput bold 2>/dev/null || true)"
         readonly ta_uscore="$(tput smul 2>/dev/null || true)"
@@ -274,17 +833,19 @@ function script_init() {
 # OUTS: $script_output: Path to the file stdout & stderr was redirected to
 # RETS: None
 function quiet_init() {
-    if [[ -n "${_option_quiet-}" ]]; then
+
+    # NOTE: quiet_init() runs after parse_params(), there is no need for default value
+    if [[ "${VALUES["--quiet"]}" == true ]]; then
         # Redirect all output to a temporary file
-        # shellcheck disable=SC2312
-        # NOTE: comparable with BusyBox mktemp inside Alpine Image
+
+        # CAUTION: comparable with BusyBox mktemp inside Alpine Image
         readonly script_output="$(mktemp -p "/tmp" "${script_name}.XXXXXX")"
         exec 3>&1 4>&2 1>"${script_output}" 2>&1
     fi
 }
 
 # DESC: Acquire script lock
-# ARGS: $1 (optional): Scope of script execution lock (system or user)
+# ARGS: $1 (required): Scope of script execution lock (system or user)
 # OUTS: $script_lock: Path to the directory indicating we have the script lock
 # RETS: None
 # NOTE: This lock implementation is extremely simple but should be reliable
@@ -292,20 +853,24 @@ function quiet_init() {
 #       symlinks or multiple hardlinks as there's no portable way of doing so.
 #       If the lock was acquired it's automatically released on script exit.
 function lock_init() {
+    if [[ -z "${1-}" ]]; then
+        script_exit "Scope is empty"
+    fi
+    local -r scope="${1}"
     local lock_dir
-    if [[ "${1}" = "system" ]]; then
+    if [[ "${scope}" = "system" ]]; then
         lock_dir="/tmp/${script_name}.lock"
-    elif [[ "${1}" = "user" ]]; then
+    elif [[ "${scope}" = "user" ]]; then
         lock_dir="/tmp/${script_name}.${UID}.lock"
     else
-        script_exit "Missing or invalid arguments to ${FUNCNAME[0]}()!" 2
+        script_exit "Invalid scope: ${1}"
     fi
 
     if mkdir "${lock_dir}" 2>/dev/null; then
         readonly script_lock="${lock_dir}"
-        info "Acquired script lock: ${script_lock}"
+        echo "Acquired script lock: ${script_lock}"
     else
-        script_exit "Unable to acquire script lock: ${lock_dir}" 1
+        script_exit "Unable to acquire script lock: ${lock_dir}"
     fi
 }
 
@@ -316,23 +881,23 @@ function lock_init() {
 # RETS: None
 # NOTE: Heavily inspired by: https://unix.stackexchange.com/a/40973
 function build_path() {
-    if [[ $# -lt 1 ]]; then
-        script_exit "Missing required arguments to ${FUNCNAME[0]}()!" 2
+    if [[ -z "${1-}" ]]; then
+        script_exit "Path is empty"
     fi
 
     local temp_path="${1}:"
-    if [[ -n "${2-}" ]]; then
+    if [[ -n "${2:-}" ]]; then
         temp_path="${temp_path}${2}:"
     fi
 
     local new_path=
-    while [[ -n "${temp_path}" ]]; do
-        local path_entry="${temp_path%%:*}"
+    while [[ -n "${temp_path:-}" ]]; do
+        local -r path_entry="${temp_path%%:*}"
         case "${new_path}:" in
-            *:"${path_entry}":*) ;;
-            *)
-                new_path="${new_path}:${path_entry}"
-                ;;
+        *:"${path_entry}":*) ;;
+        *)
+            new_path="${new_path}:${path_entry}"
+            ;;
         esac
         temp_path="${temp_path#*:}"
     done
@@ -348,20 +913,22 @@ function build_path() {
 # RETS: 0 (true) if dependency was found, otherwise 1 (false) if failure is not
 #       being treated as a fatal error.
 function check_binary() {
-    if [[ $# -lt 1 ]]; then
-        script_exit "Missing required arguments to ${FUNCNAME[0]}()!" 2
+    if [[ -z "${1-}" ]]; then
+        script_exit "Binary is empty"
     fi
+    local -r binary="${1}"
+    local -r fatal="${2:-}"
 
-    if ! command -v "${1}" >/dev/null 2>&1; then
-        if [[ -n "${2-}" ]]; then
-            script_exit "Missing dependency: Couldn't locate ${1}." 1
+    if ! command -v "${binary}" >/dev/null 2>&1; then
+        if [[ -n "${fatal}" ]]; then
+            script_exit "Missing dependency '${binary}'"
         else
-            error "Missing dependency: ${1}"
+            error "Missing dependency '${binary}'"
             return 1
         fi
     fi
 
-    info "Found dependency: ${1}"
+    info "Found dependency '${binary}'"
     return 0
 }
 
@@ -399,17 +966,13 @@ function check_superuser() {
 }
 
 # DESC: Run the requested command as root (via sudo if requested)
-# ARGS: $1 (optional): Set to any value to not attempt execution via sudo
+# ARGS: $1 (optional): Set to --no-sudo or -n to not attempt execution via sudo
 #       $@ (required): Passed through for execution as root user
 # OUTS: None
 # RETS: 0 on success, 1 on failure
 function run_as_root() {
-    if [[ $# -eq 0 ]]; then
-        script_exit "Missing required arguments to ${FUNCNAME[0]}()!" 2
-    fi
-
     local skip_sudo=
-    if [[ "${1-}" == "--no-sudo" ]]; then
+    if [[ "${1-}" =~ ^(--no-sudo|-n)$ ]]; then
         skip_sudo=true
         shift
     fi
@@ -419,7 +982,7 @@ function run_as_root() {
     elif [[ -z "${skip_sudo}" ]]; then
         # shellcheck disable=SC2310
         if ! check_binary sudo; then
-            script_exit "'sudo' binary is not available." 1
+            script_exit "'sudo' binary is not available."
         fi
         warn "Run the following command with sudo privilege:"
         warn "$*"
@@ -430,148 +993,43 @@ function run_as_root() {
     fi
 }
 
-# DESC: Parameter parser
-# ARGS: $@ (optional): Arguments provided to the script
-# OUTS: $_option_*    : variables indicating command-line parameters and options
-#       $options      : a variable holding underscore-separated options name
-#       $help_options : an indexed array, each line contains a line of help message
-# RETS: None
-function parse_params() {
+# DESC: Register the a set of options
+# ARGS: None
+# OUTS: OPTIONS, ORDERS and VALUES are populated with data
+# RETS: 0
+function option_init() {
+    # NOTE: long-name, short-name, default, help, type, required, constraints
+    # register_option ...
 
-    # Extract options dynamically from parse_params function
-
-    # shellcheck disable=SC2016,SC2312
-    local script_file="${BASH_SOURCE[0]}"
-    declare -gA options=()     # associative array
-    declare -g help_options=() # indexed array
-
-    local in_case_block=
-    while IFS= read -r line; do
-        if [[ $line =~ case.*param.*in ]]; then
-            in_case_block=true
-            continue
-        elif [[ $line =~ esac ]]; then
-            # reset
-            in_case_block=
-            continue
-        fi
-
-        if [[ -n "${in_case_block-}" ]]; then
-
-            if [[ $line =~ ^[[:space:]]*-([a-z])[[:space:]]\|[[:space:]]--([a-z-]+)\)$ ]]; then
-                option_name="${BASH_REMATCH[2]//-/_}"
-                option_help="-${BASH_REMATCH[1]}, --${BASH_REMATCH[2]}"
-                options["${option_name}"]= # empty
-
-            elif [[ $line =~ ^[[:space:]]*--([a-z-]+)\)$ ]]; then
-                option_name="${BASH_REMATCH[1]//-/_}"
-                option_help="    --${BASH_REMATCH[1]}"
-                options["${option_name}"]= # empty
-
-            elif [[ $line =~ ^[[:space:]]*###[[:space:]]*(.*)$ ]]; then
-                local help_text="${BASH_REMATCH[1]}"
-
-                # Extract default value using a more structured syntax: @DEFAULT:value@
-                if [[ $help_text =~ @DEFAULT:([^@]+)@ ]]; then
-                    local default_value="${BASH_REMATCH[1]}"
-                    # add default value to help
-                    option_help+="=${default_value}"
-                    options["${option_name}"]="${default_value}"
-                    # Remove the placeholder from help text
-                    help_text="${help_text/@DEFAULT:${default_value}@/}"
-                    help_text="${help_text% }" # trim trailing space
-                fi
-
-                # short and long format of the parameter name shouldn't exceeded 25 characters
-                help_options+=("$(printf "    %-25s %s\n" "${option_help}" "${help_text}")")
-                option_help= # reset
-            fi
-        fi
-    done <"$script_file"
-
-    # Check if options array is empty
-    if [[ "${#options[@]}" -eq 0 ]]; then
-        script_exit "No valid flags found in ${FUNCNAME[0]}() function." 2
-    fi
-
-    # Initialize all flags with default value
-    for option in "${!options[@]}"; do
-        # NOTE: use "_option_*" as prefix
-        declare -g "_option_${option}=${options[${option}]}"
-    done
-
-    # parse provided arguments
-    while [[ $# -gt 0 ]]; do
-        local param="${1}"
-        shift
-        case "${param}" in
-            # Add your options here
-            # ...
-
-            # Built-in options
-            # NOTE: ### comment will be displayed as short description for options in --help output
-            -l | --log-level)
-                ### Specify log level (DBG|INF|WRN|ERR). @DEFAULT:INF@
-                ### Add DEBUG=true to enable Bash debug mode.
-
-                if [[ -z "${LOG_LEVELS[${1}]}" ]]; then
-                    script_exit "Invalid log level: ${1}. Please choose 1 of the following: ${LOG_LEVELS[*]}" 2
-                fi
-                _option_log_level="${1}"
-                shift
-                ;;
-            -n | --no-colour)
-                ### Disables colour output
-
-                _option_no_colour=true
-                ;;
-            -q | --quiet)
-                ### Run silently unless an error is encountered
-
-                _option_quiet=true
-                ;;
-            -t | --timestamp)
-                ### Enables timestamp output
-
-                _option_timestamp=true
-                ;;
-            -h | --help)
-                ### Displays this help and exit
-
-                script_usage
-                exit 0
-                ;;
-            *)
-                script_exit "${FUNCNAME[0]}() receives invalid arguments: ${param}" 2
-                ;;
-        esac
-    done
-
-    # Check if options array is empty
-    if [[ "${#options[@]}" -eq 0 ]]; then
-        script_exit "No options found in ${FUNCNAME[0]}() function." 2
-    fi
-
-    # Make the options read-only
-    for option in "${!options[@]}"; do
-        readonly "_option_${option}"
-    done
+    # CAUTION: --help must be placed as the first option in the built-in options list
+    # CAUTION: I add a blank link on top of this function inside help message
+    register_option "--help" "-h" false "Display this help and exit" "bool"
+    register_option "--log-level" "-l" "INF" "Specify log level" "choice" false "DBG,INF,WRN,ERR"
+    register_option "--timestamp" "-t" false "Enable timestamp output" "bool"
+    register_option "--no-color" "-n" false "Disable color output" "bool"
+    register_option "--quiet" "-q" false "Run silently unless an error is encountered" "bool"
 }
 
-# DESC: Usage help
+# DESC: Print help message when user declare --help, -h option
 # ARGS: None
-# OUTS: None
-# RETS: None
-function script_usage() {
+# OUTS: Help message
+# RETS: 0
+function print_help_message() {
+
     cat <<EOF
 
-Usage: @NAME@ [OPTIONS] ...
+Usage: [DEBUG=1] @NAME@ [OPTIONS]
 
 Add short description and examples here...
 
-Options:
-$(printf '%s\n' "${help_options[@]-}")
+Example:
+
+    Add some examples here...
+
 EOF
+
+    generate_help
+
 }
 
 # DESC: Main control flow
@@ -583,20 +1041,21 @@ function main() {
     trap script_trap_exit EXIT
 
     script_init "$@"
+    option_init
     parse_params "$@"
     quiet_init
-    colour_init
+    color_init
     lock_init user
 
     # start here
     # shellcheck disable=SC2154
-    info "script_params: ${script_params}"
+    debug "script_params: ${script_params}"
     # shellcheck disable=SC2154
-    info "script_path: ${script_path}"
+    debug "script_path: ${script_path}"
     # shellcheck disable=SC2154
-    info "script_dir: ${script_dir}"
+    debug "script_dir: ${script_dir}"
     # shellcheck disable=SC2154
-    info "script_name: ${script_name}"
+    debug "script_name: ${script_name}"
 
     # Logging helper functions
     error "This is an error message"

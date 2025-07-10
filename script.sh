@@ -11,153 +11,49 @@
 
 ## TEMREPO      : https://github.com/Silverbullet069/bash-script-template
 ## TEMMODE      : @MODE@
+## TEMVER       : @TAG@
 ## TEMUPDATED   : @UPDATED@
 ## TEMLIC       : BSD 3-Clause License
 
 # ============================================================================ #
 
-# DESC: Parameter parser
-# ARGS: $@ (optional): Arguments provided to the script
-# OUTS: $_option_*    : variables indicating command-line parameters and options
-#       $options      : a variable holding underscore-separated options name
-#       $help_options : an indexed array, each line contains a line of help message
-# RETS: None
-function parse_params() {
+# DESC: Register the a set of options
+# ARGS: None
+# OUTS: OPTIONS, ORDERS and VALUES are populated with data
+# RETS: 0
+function option_init() {
+    # NOTE: long-name, short-name, default, help, type, required, constraints
+    # register_option ...
 
-    # Extract options dynamically from parse_params function
-
-    # shellcheck disable=SC2016,SC2312
-    local script_file="${BASH_SOURCE[0]}"
-    declare -gA options=()     # associative array
-    declare -g help_options=() # indexed array
-
-    local in_case_block=
-    while IFS= read -r line; do
-        if [[ $line =~ case.*param.*in ]]; then
-            in_case_block=true
-            continue
-        elif [[ $line =~ esac ]]; then
-            # reset
-            in_case_block=
-            continue
-        fi
-
-        if [[ -n "${in_case_block-}" ]]; then
-
-            if [[ $line =~ ^[[:space:]]*-([a-z])[[:space:]]\|[[:space:]]--([a-z-]+)\)$ ]]; then
-                option_name="${BASH_REMATCH[2]//-/_}"
-                option_help="-${BASH_REMATCH[1]}, --${BASH_REMATCH[2]}"
-                options["${option_name}"]= # empty
-
-            elif [[ $line =~ ^[[:space:]]*--([a-z-]+)\)$ ]]; then
-                option_name="${BASH_REMATCH[1]//-/_}"
-                option_help="    --${BASH_REMATCH[1]}"
-                options["${option_name}"]= # empty
-
-            elif [[ $line =~ ^[[:space:]]*###[[:space:]]*(.*)$ ]]; then
-                local help_text="${BASH_REMATCH[1]}"
-
-                # Extract default value using a more structured syntax: @DEFAULT:value@
-                if [[ $help_text =~ @DEFAULT:([^@]+)@ ]]; then
-                    local default_value="${BASH_REMATCH[1]}"
-                    # add default value to help
-                    option_help+="=${default_value}"
-                    options["${option_name}"]="${default_value}"
-                    # Remove the placeholder from help text
-                    help_text="${help_text/@DEFAULT:${default_value}@/}"
-                    help_text="${help_text% }" # trim trailing space
-                fi
-
-                # short and long format of the parameter name shouldn't exceeded 25 characters
-                help_options+=("$(printf "    %-25s %s\n" "${option_help}" "${help_text}")")
-                option_help= # reset
-            fi
-        fi
-    done <"$script_file"
-
-    # Check if options array is empty
-    if [[ "${#options[@]}" -eq 0 ]]; then
-        script_exit "No valid flags found in ${FUNCNAME[0]}() function." 2
-    fi
-
-    # Initialize all flags with default value
-    for option in "${!options[@]}"; do
-        # NOTE: use "_option_*" as prefix
-        declare -g "_option_${option}=${options[${option}]}"
-    done
-
-    # parse provided arguments
-    while [[ $# -gt 0 ]]; do
-        local param="${1}"
-        shift
-        case "${param}" in
-            # Add your options here
-            # ...
-
-            # Built-in options
-            # NOTE: ### comment will be displayed as short description for options in --help output
-            -l | --log-level)
-                ### Specify log level (DBG|INF|WRN|ERR). @DEFAULT:INF@
-                ### Add DEBUG=true to enable Bash debug mode.
-
-                if [[ -z "${LOG_LEVELS[${1}]}" ]]; then
-                    script_exit "Invalid log level: ${1}. Please choose 1 of the following: ${LOG_LEVELS[*]}" 2
-                fi
-                _option_log_level="${1}"
-                shift
-                ;;
-            -n | --no-colour)
-                ### Disables colour output
-
-                _option_no_colour=true
-                ;;
-            -q | --quiet)
-                ### Run silently unless an error is encountered
-
-                _option_quiet=true
-                ;;
-            -t | --timestamp)
-                ### Enables timestamp output
-
-                _option_timestamp=true
-                ;;
-            -h | --help)
-                ### Displays this help and exit
-
-                script_usage
-                exit 0
-                ;;
-            *)
-                script_exit "${FUNCNAME[0]}() receives invalid arguments: ${param}" 2
-                ;;
-        esac
-    done
-
-    # Check if options array is empty
-    if [[ "${#options[@]}" -eq 0 ]]; then
-        script_exit "No options found in ${FUNCNAME[0]}() function." 2
-    fi
-
-    # Make the options read-only
-    for option in "${!options[@]}"; do
-        readonly "_option_${option}"
-    done
+    # CAUTION: --help must be placed as the first option in the built-in options list
+    # CAUTION: I add a blank link on top of this function inside help message
+    register_option "--help" "-h" false "Display this help and exit" "bool"
+    register_option "--log-level" "-l" "INF" "Specify log level" "choice" false "DBG,INF,WRN,ERR"
+    register_option "--timestamp" "-t" false "Enable timestamp output" "bool"
+    register_option "--no-color" "-n" false "Disable color output" "bool"
+    register_option "--quiet" "-q" false "Run silently unless an error is encountered" "bool"
 }
 
-# DESC: Usage help
+# DESC: Print help message when user declare --help, -h option
 # ARGS: None
-# OUTS: None
-# RETS: None
-function script_usage() {
+# OUTS: Help message
+# RETS: 0
+function print_help_message() {
+
     cat <<EOF
 
-Usage: @NAME@ [OPTIONS] ...
+Usage: [DEBUG=1] @NAME@ [OPTIONS]
 
 Add short description and examples here...
 
-Options:
-$(printf '%s\n' "${help_options[@]-}")
+Example:
+
+    Add some examples here...
+
 EOF
+
+    generate_help
+
 }
 
 # DESC: Main control flow
@@ -169,20 +65,21 @@ function main() {
     trap script_trap_exit EXIT
 
     script_init "$@"
+    option_init
     parse_params "$@"
     quiet_init
-    colour_init
+    color_init
     lock_init user
 
     # start here
     # shellcheck disable=SC2154
-    info "script_params: ${script_params}"
+    debug "script_params: ${script_params}"
     # shellcheck disable=SC2154
-    info "script_path: ${script_path}"
+    debug "script_path: ${script_path}"
     # shellcheck disable=SC2154
-    info "script_dir: ${script_dir}"
+    debug "script_dir: ${script_dir}"
     # shellcheck disable=SC2154
-    info "script_name: ${script_name}"
+    debug "script_name: ${script_name}"
 
     # Logging helper functions
     error "This is an error message"

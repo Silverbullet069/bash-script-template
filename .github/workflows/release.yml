@@ -78,6 +78,6 @@ jobs:
             --target main \
             --notes-file release_notes.md \
             --latest \
-            source.sh script.sh template.sh template_lite.sh clone_bash_template.sh
+            source.sh script.sh template.sh template_lite.sh clone.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

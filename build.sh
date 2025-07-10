@@ -3,16 +3,17 @@
 # ============================================================================ #
 
 ## FILE         : build.sh
-## VERSION      : v0.0.1
-## DESCRIPTION  : Merge source.sh and script.sh to template.sh
+## VERSION      : v3.0.0
+## DESCRIPTION  : Merge source and script into template
 ## AUTHOR       : silverbullet069
 ## REPOSITORY   : https://github.com/Silverbullet069/bash-script-template
-## LICENSE      : MIT License
+## LICENSE      : BSD-3-Clause
 
 ## TEMREPO      : https://github.com/Silverbullet069/bash-script-template
 ## TEMMODE      : lite
+## TEMVER       : v3.0.0
 ## TEMUPDATED   : 2025-06-21 19:15:03.788041997 +0700
-## TEMLIC       : MIT License
+## TEMLIC       : BSD-3-Clause
 
 # ============================================================================ #
 
@@ -69,47 +70,83 @@ set -o errtrace # Make sure any error trap is inherited
 set -o nounset  # Disallow expansion of unset variables
 set -o pipefail # Use last non-zero exit code in a pipeline
 
+function build() {
+    local -r source_path="${1}"
+    local -r script_path="${2}"
+    local -r template_path="${3}"
+
+    if [[ ! -f "${source_path}" ]]; then
+        echo "source.sh not found: ${script_path}" >&2
+        exit 1
+    fi
+
+    if [[ ! -r "${source_path}" ]]; then
+        echo "source.sh is unreadable: ${script_path}" >&2
+        exit 1
+    fi
+
+    if [[ ! -f "${script_path}" ]]; then
+        echo "script.sh not found: ${script_path}" >&2
+        exit 1
+    fi
+
+    if [[ ! -r "${script_path}" ]]; then
+        echo "script.sh is unreadable: ${script_path}" >&2
+        exit 1
+    fi
+
+    # NOTE: Update the arbitrary values if header changes
+    local -r script_header=$(head -n 18 "${script_path}")
+    local -r source_body=$(tail -n +12 "${source_path}")
+    local -r script_body=$(tail -n +19 "${script_path}" | grep -vE -e '^# shellcheck source=source.sh$' -e '^# shellcheck disable=SC1091$' -e '^source.*source\.sh"$')
+
+    chmod 755 "${template_path}"
+    {
+        echo "${script_header}"
+        echo "${source_body}"
+        echo "${script_body}"
+    } >"${template_path}"
+
+    chmod 555 "${template_path}"
+    echo "Build ${template_path} successfully."
+}
+
+function cleanup() {
+    echo "Stopping file monitor..."
+    exit 0
+}
+
 # Main control flow
 function main() {
     trap script_trap_exit EXIT
     lock_init "user"
 
-    local -r script_dir="$(dirname "${BASH_SOURCE[0]}")"
+    local -r source_path="$(dirname "${BASH_SOURCE[0]}")/source.sh"
+    local -r script_path="$(dirname "${BASH_SOURCE[0]}")/script.sh"
+    local -r template_path="$(dirname "${BASH_SOURCE[0]}")/template.sh"
 
-    # Check if required files exist
-    if [[ ! -f "${script_dir}/script.sh" ]]; then
-        echo "Error: script.sh not found in ${script_dir}" >&2
-        exit 1
+    # initial build
+    build "${source_path}" "${script_path}" "${template_path}"
+
+    # simple dev server
+    if [[ "${1-}" =~ ^(--monitor|-m)$ ]]; then
+        # gracefully stopping dev server
+        trap cleanup SIGINT SIGTERM SIGHUP
+
+        inotifywait \
+            --monitor \
+            --event "close_write" \
+            "${source_path}" "${script_path}" \
+            | while read -r dir event file; do
+                echo "Change detected: ${event} on ${dir}${file}"
+                # NOTE: add a small delay to allow accumulation of multiple changes
+                sleep 1
+                build "${source_path}" "${script_path}" "${template_path}"
+            done
     fi
-
-    if [[ ! -f "${script_dir}/source.sh" ]]; then
-        echo "Error: source.sh not found in ${script_dir}" >&2
-        exit 1
-    fi
-
-    # Arbitrary values
-    # shellcheck disable=SC2312
-    local -r script_header=$(head -n 17 "${script_dir}/script.sh" || exit 1)
-    # shellcheck disable=SC2312
-    local -r source_body=$(tail -n +12 "${script_dir}/source.sh" || exit 1)
-    # shellcheck disable=SC2312
-    local -r script_body=$(tail -n +18 "${script_dir}/script.sh" | grep -vE -e '^# shellcheck source=source.sh$' -e '^# shellcheck disable=SC1091$' -e '^source.*source\.sh"$' || exit 1)
-
-    # Combine parts in desired order and write to template.sh
-    # Make template.sh temporately writeable for updating
-    chmod 755 "${script_dir}/template.sh"
-    {
-        echo "${script_header}"
-        echo "${source_body}"
-        echo "${script_body}"
-    } >"${script_dir}/template.sh"
-
-    # Make template.sh executable and read-only
-    # Any changes to template.sh must go through source.sh and script.sh
-    chmod 555 "${script_dir}/template.sh"
-
-    echo "Build template.sh successfully."
 }
 
-# Template, assemble
-main "$@"
+# Invoke main with args if not sourced
+if ! (return 0 2>/dev/null); then
+    main "$@"
+fi
