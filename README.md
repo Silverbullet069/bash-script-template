@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/Silverbullet069/bash-script-template/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Silverbullet069/bash-script-template/actions/workflows/test.yml)
 [![Release](https://img.shields.io/github/v/release/Silverbullet069/bash-script-template?include_prereleases&label=version)](https://github.com/Silverbullet069/bash-script-template/releases/latest)
-[![License: MIT](https://img.shields.io/github/license/Silverbullet069/bash-script-template)](https://opensource.org/licenses/MIT)
+[![License: BSD-3-Clause](https://img.shields.io/github/license/Silverbullet069/bash-script-template)](https://opensource.org/license/bsd-3-clause)
 
 A production-ready Bash scripting template with best practices, robust error handling, and useful utilities built-in.
 
