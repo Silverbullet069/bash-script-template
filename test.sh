@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
 
-## FILE         : run_dev.sh
-## VERSION      : v0.0.1
+# ============================================================================ #
+
+## FILE         : test.sh
+## VERSION      : v3.0.0
 ## DESCRIPTION  : Execute runtime inside an isolated containerized environment.
 ## AUTHOR       : silverbullet069
 ## REPOSITORY   : https://github.com/Silverbullet069/bash-script-template
-## LICENSE      : MIT License
+## LICENSE      : BSD 3-Clause License
 
 ## TEMREPO      : https://github.com/Silverbullet069/bash-script-template
 ## TEMMODE      : lite
+## TEMVER       : v2.4.0
 ## TEMUPDATED   : 2025-06-21 19:15:03.788041997 +0700
-## TEMLIC       : MIT License
+## TEMLIC       : BSD 3-Clause License
 
 # ============================================================================ #
 
@@ -85,16 +88,17 @@ function main() {
 
     # Cre: https://bats-core.readthedocs.io/en/stable/docker-usage.html#basic-usage
     docker run \
-        --name="bash-script-template-test" \
+        -u="1000:1000" \
+        --name="bash-script-template" \
         --rm \
-        --user="$(id -u):$(id -g)" \
-        --network none \
+        --network=none \
         --security-opt=no-new-privileges:true \
-        --volume="$PWD:/code:ro" \
+        -v="$PWD:/code:ro" \
+        -w="/code" \
+        --cpus=0.5 \
+        -m="512m" \
         bats/bats:latest \
         "$@"
-    # --jobs "$(nproc)" "$@"
-
 }
 
 # Invoke main with args if not sourced

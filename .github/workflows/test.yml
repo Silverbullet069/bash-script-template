@@ -26,16 +26,8 @@ jobs:
       - name: Pull Bats Docker image
         run: docker pull bats/bats:latest
 
-      - name: Test clone_bash_template.sh
+      - name: Test
         shell: bash
         env:
           TERM: xterm
-        run: |
-          docker run \
-            --rm \
-            --user="$(id -u):$(id -g)" \
-            --network none \
-            --security-opt=no-new-privileges:true \
-            --volume="$PWD:/code:ro" \
-            bats/bats:latest \
-            /code/tests
+        run: ./test.sh "tests"
